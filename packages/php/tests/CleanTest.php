@@ -151,6 +151,10 @@ final class CleanTest extends TestCase {
 		// What an earlier version wrote (a point as px) is read as it was.
 		$earlier = $this->clean()->design( array( 'page' => array( 'width' => '841.89px', 'height' => '595.28px' ), 'elements' => array() ) );
 		$this->assertSame( '297mm', $earlier['page']['width'] );
+		// No safe margin written when there is none, and it is read as 0.
+		$none = $this->clean()->design( array( 'page' => array( 'w' => 841.89, 'h' => 595.28, 'bg' => '$background', 'safe' => 0, 'bleed' => 0 ), 'elements' => array() ) );
+		$this->assertSame( array( 'width' => '297mm', 'height' => '210mm', 'backgroundColor' => '$background' ), $none['page'] ); // phpcs:ignore
+		$this->assertSame( 0.0, (float) Page::in_points( $none )['page']['safe'] );
 		// Read back in points to the hundredth: 297mm by 210mm is 841.89 by 595.28.
 		$points = Page::in_points( $clean )['page'];
 		$this->assertSame( 841.89, $points['w'] );

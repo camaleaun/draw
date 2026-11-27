@@ -120,7 +120,7 @@ final class Page {
 	}
 
 	/**
-	 * A page in points as it is kept: lengths with their unit, and no bleed when there is none.
+	 * A page in points as it is kept: lengths with their unit, and no safe margin and no bleed when there is none.
 	 *
 	 * @param array<string, mixed> $page Page (w, h, bg, safe, bleed).
 	 * @return array<string, mixed>
@@ -134,8 +134,11 @@ final class Page {
 			'width'           => $size[0],
 			'height'          => $size[1],
 			'backgroundColor' => $page['bg'] ?? '$background',
-			'safe'            => $n( (float) ( $page['safe'] ?? 0 ) / self::UNITS['mm'] ) . 'mm',
 		);
+		// No safe margin and no bleed when there is none.
+		if ( (float) ( $page['safe'] ?? 0 ) > 0 ) {
+			$out['safe'] = $n( (float) $page['safe'] / self::UNITS['mm'] ) . 'mm';
+		}
 		if ( (float) ( $page['bleed'] ?? 0 ) > 0 ) {
 			$out['bleed'] = $n( (float) $page['bleed'] / self::UNITS['mm'] ) . 'mm';
 		}
