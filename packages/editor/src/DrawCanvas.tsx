@@ -17,10 +17,10 @@ const SNAP = 5;
 type Drag = { kind: 'move' | 'resize'; id: string; handle?: string; startX: number; startY: number; origin: { x: number; y: number; w: number; h: number } } | null;
 
 const SHAPES: Array< [ string, string, Record< string, unknown > ] > = [
-	[ 'draw/rect', __( 'Rectangle', 'draw' ), { w: 120, h: 80, fill: '#dcdcde' } ],
-	[ 'draw/ellipse', __( 'Ellipse', 'draw' ), { w: 100, h: 100, fill: '#dcdcde' } ],
-	[ 'draw/text', __( 'Text', 'draw' ), { w: 160, h: 24, size: 18, runs: [ { text: __( 'Text', 'draw' ) } ] } ],
-	[ 'draw/svg', __( 'SVG', 'draw' ), { w: 64, h: 64, vw: 24, vh: 24 } ],
+	[ 'draw/rect', __( 'Rectangle', 'draw' ), { width: 120, height: 80, fill: '#dcdcde' } ],
+	[ 'draw/ellipse', __( 'Ellipse', 'draw' ), { width: 100, height: 100, fill: '#dcdcde' } ],
+	[ 'draw/text', __( 'Text', 'draw' ), { width: 160, height: 24, size: 18, runs: [ { text: __( 'Text', 'draw' ) } ] } ],
+	[ 'draw/svg', __( 'SVG', 'draw' ), { width: 64, height: 64, viewBox: '0 0 24 24' } ],
 ];
 
 /** The WordPress icon library's "info" icon, one path with no fill-rule (the winding does the hole): what a new SVG shows. */
@@ -42,7 +42,7 @@ export function DrawCanvas( { clientId, width, height, colors = {} }: { clientId
 	const scale = () => ( svg.current ? svg.current.getBoundingClientRect().width / width : 1 );
 	const shapes = blocks.filter( ( b ) => b.name !== 'draw/svg-path' );
 	const current = shapes.find( ( b ) => b.clientId === selected );
-	const others = ( id: string ) => shapes.filter( ( b ) => b.clientId !== id && b.attributes.w ).map( ( b ) => boxOf( b.attributes ) );
+	const others = ( id: string ) => shapes.filter( ( b ) => b.clientId !== id && b.attributes.width ).map( ( b ) => boxOf( b.attributes ) );
 
 	const begin = ( event: React.PointerEvent, block: ShapeBlock, kind: 'move' | 'resize', handle?: string ) => {
 		event.stopPropagation();
@@ -67,7 +67,7 @@ export function DrawCanvas( { clientId, width, height, colors = {} }: { clientId
 			next = resizeBox( drag.origin, drag.handle || 'se', dx, dy, event.shiftKey, event.altKey );
 		}
 		// Every move is an update of the same attributes of the same block, which the editor's history keeps as one step.
-		updateBlockAttributes( drag.id, { x: round( next.x ), y: round( next.y ), w: round( next.w ), h: round( next.h ) } );
+		updateBlockAttributes( drag.id, { x: round( next.x ), y: round( next.y ), width: round( next.w ), height: round( next.h ) } );
 	};
 	const end = () => {
 		setDrag( null );
@@ -90,8 +90,8 @@ export function DrawCanvas( { clientId, width, height, colors = {} }: { clientId
 	};
 	// A new shape is put in the middle of the frame (x and y), whatever its size; an SVG comes with a path, so there is something to see.
 	const add = ( name: string, attrs: Record< string, unknown > ) => {
-		const w = Number( attrs.w ) || 0;
-		const h = Number( attrs.h ) || 0;
+		const w = Number( attrs.width ) || 0;
+		const h = Number( attrs.height ) || 0;
 		const place = { x: round( ( width - w ) / 2 ), y: round( ( height - h ) / 2 ) };
 		const inner = name === 'draw/svg' ? [ createBlock( 'draw/svg-path', { d: INFO_ICON } ) ] : [];
 		insertBlocks( createBlock( name, { ...attrs, ...place }, inner ), undefined, clientId );

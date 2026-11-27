@@ -1,13 +1,15 @@
 /**
  * A design (page, colors, palette, elements, back…) as blocks, and back. The same as the PHP package (Camaleaun\Draw\Design):
  * the root is `events-certificates/certificate`, the declaration sheet `events-certificates/certificate-back`, each element a block of
- * its type, each path of an SVG a `draw/svg-path` inner block. Every key of an element is an attribute of its block.
+ * its type, each path of an SVG a `draw/svg-path` inner block. Every key of an element is an attribute of its block, with the names a block says
+ * (width, height, viewBox, lineHeight, horizontal…: `names.ts`).
  *
  * That is the default, the native way of the blocks. A second argument (`Options`) changes it, the same for both directions: the block
  * of a type (`blocks`, over the defaults), the block that keeps the types that are not known (`fallback`), and whether the paths of an
  * SVG are inner blocks (`inner`, the default) or the `paths` attribute of one block (`attribute`).
  */
 import { parse, serialize, type Block } from './markup';
+import { fromAttrs, toAttrs, withIds } from './names';
 
 export type Attrs = Record< string, unknown >;
 export type Design = Attrs & { elements?: Attrs[]; back?: Attrs & { elements?: Attrs[] } };
@@ -46,8 +48,8 @@ function blocks( elements: unknown, o: Resolved ): Block[] {
 		if ( ! isObject( element ) ) {
 			continue;
 		}
-		const { type, ...attrs } = element;
-		const kind = String( type ?? '' );
+		const { type, ...attrs } = toAttrs( element );
+		const kind = String( element.type ?? '' );
 		let children: Block[] = [];
 		if ( kind === 'svg' && o.paths === 'inner' && Array.isArray( element.paths ) ) {
 			delete attrs.paths;
@@ -65,10 +67,10 @@ function blocks( elements: unknown, o: Resolved ): Block[] {
 
 function element( block: Block, o: Resolved ): Attrs {
 	if ( block.name === o.fallback ) {
-		return block.attrs;
+		return fromAttrs( block.attrs );
 	}
 	const type = Object.keys( o.blocks ).find( ( key ) => o.blocks[ key ] === block.name ) ?? '';
-	const out: Attrs = { type, ...block.attrs };
+	const out: Attrs = { type, ...fromAttrs( block.attrs ) };
 	if ( type === 'svg' && o.paths === 'inner' && out.markup === undefined ) {
 		out.paths = block.children.filter( ( child ) => child.name === PATH ).map( ( child ) => child.attrs );
 	}
@@ -98,12 +100,12 @@ export function fromMarkup( markup: string, options?: Options ): Design | null {
 	const elements: Attrs[] = [];
 	for ( const child of parsed[ 0 ].children ) {
 		if ( child.name === BACK ) {
-			design.back = { ...child.attrs, elements: child.children.map( ( c ) => element( c, o ) ) };
+			design.back = { ...child.attrs, elements: withIds( child.children.map( ( c ) => element( c, o ) ) ) };
 			continue;
 		}
 		elements.push( element( child, o ) );
 	}
-	design.elements = elements;
+	design.elements = withIds( elements );
 	return design;
 }
 

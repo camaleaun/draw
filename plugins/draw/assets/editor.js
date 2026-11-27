@@ -303,7 +303,7 @@
     return /^(#[0-9a-f]{3,8}|none|transparent|(rgb|hsl)a?\([0-9.,%\s/deg-]+\))$/i.test(v) ? v : other;
   }
   function boxOf(a) {
-    return { x: Number(a.x) || 0, y: Number(a.y) || 0, w: Number(a.w) || 0, h: Number(a.h) || 0 };
+    return { x: Number(a.x) || 0, y: Number(a.y) || 0, w: Number(a.width) || 0, h: Number(a.height) || 0 };
   }
   function Shape({ block, colors }) {
     const a = block.attributes;
@@ -322,10 +322,10 @@
         inside = /* @__PURE__ */ (0, import_element.createElement)("line", { x1: a.x1 || 0, y1: a.y1 || 0, x2: a.x2 || 0, y2: a.y2 || 0, stroke: stroke === "none" ? "currentColor" : stroke, strokeWidth: a.strokeWidth || 1 });
         break;
       case "draw/path":
-        inside = isPathData(a.d || "") ? /* @__PURE__ */ (0, import_element.createElement)("svg", { x, y, width: w, height: h, viewBox: `0 0 ${a.vw || 100} ${a.vh || 100}`, overflow: "hidden" }, /* @__PURE__ */ (0, import_element.createElement)("path", { d: a.d, ...common })) : null;
+        inside = isPathData(a.d || "") ? /* @__PURE__ */ (0, import_element.createElement)("svg", { x, y, width: w, height: h, viewBox: String(a.viewBox || "0 0 100 100"), overflow: "hidden" }, /* @__PURE__ */ (0, import_element.createElement)("path", { d: a.d, ...common })) : null;
         break;
       case "draw/svg":
-        inside = /* @__PURE__ */ (0, import_element.createElement)("svg", { x, y, width: w, height: h, viewBox: `0 0 ${a.vw || 24} ${a.vh || 24}`, overflow: "hidden" }, (block.innerBlocks || []).filter((inner) => inner.name === "draw/svg-path" && isPathData(inner.attributes.d || "")).map((inner) => /* @__PURE__ */ (0, import_element.createElement)("path", { key: inner.clientId, d: inner.attributes.d, fill: paint(inner.attributes.fill, colors, paint(a.color, colors, "currentColor")), fillRule: inner.attributes.rule === "evenodd" ? "evenodd" : void 0 })));
+        inside = /* @__PURE__ */ (0, import_element.createElement)("svg", { x, y, width: w, height: h, viewBox: String(a.viewBox || "0 0 24 24"), overflow: "hidden" }, (block.innerBlocks || []).filter((inner) => inner.name === "draw/svg-path" && isPathData(inner.attributes.d || "")).map((inner) => /* @__PURE__ */ (0, import_element.createElement)("path", { key: inner.clientId, d: inner.attributes.d, fill: paint(inner.attributes.fill, colors, paint(a.color, colors, "currentColor")), fillRule: inner.attributes.rule === "evenodd" ? "evenodd" : void 0 })));
         break;
       case "draw/image":
         inside = /^https?:\/\//i.test(a.src || "") ? /* @__PURE__ */ (0, import_element.createElement)("image", { x, y, width: w, height: h, href: a.src, preserveAspectRatio: a.fit === "cover" ? "xMidYMid slice" : "xMidYMid meet" }) : /* @__PURE__ */ (0, import_element.createElement)("rect", { x, y, width: w, height: h, fill: "none", stroke: "#999", strokeDasharray: "4 3" });
@@ -348,10 +348,10 @@
   var HANDLES = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
   var SNAP = 5;
   var SHAPES = [
-    ["draw/rect", (0, import_i18n.__)("Rectangle", "draw"), { w: 120, h: 80, fill: "#dcdcde" }],
-    ["draw/ellipse", (0, import_i18n.__)("Ellipse", "draw"), { w: 100, h: 100, fill: "#dcdcde" }],
-    ["draw/text", (0, import_i18n.__)("Text", "draw"), { w: 160, h: 24, size: 18, runs: [{ text: (0, import_i18n.__)("Text", "draw") }] }],
-    ["draw/svg", (0, import_i18n.__)("SVG", "draw"), { w: 64, h: 64, vw: 24, vh: 24 }]
+    ["draw/rect", (0, import_i18n.__)("Rectangle", "draw"), { width: 120, height: 80, fill: "#dcdcde" }],
+    ["draw/ellipse", (0, import_i18n.__)("Ellipse", "draw"), { width: 100, height: 100, fill: "#dcdcde" }],
+    ["draw/text", (0, import_i18n.__)("Text", "draw"), { width: 160, height: 24, size: 18, runs: [{ text: (0, import_i18n.__)("Text", "draw") }] }],
+    ["draw/svg", (0, import_i18n.__)("SVG", "draw"), { width: 64, height: 64, viewBox: "0 0 24 24" }]
   ];
   var INFO_ICON = "M5.5 12a6.5 6.5 0 1 1 13 0 6.5 6.5 0 0 1-13 0ZM12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm.75 4v1.5h-1.5V8h1.5Zm0 8v-5h-1.5v5h1.5Z";
   function DrawCanvas({ clientId, width, height, colors = {} }) {
@@ -369,7 +369,7 @@
     const scale = () => svg.current ? svg.current.getBoundingClientRect().width / width : 1;
     const shapes = blocks.filter((b) => b.name !== "draw/svg-path");
     const current = shapes.find((b) => b.clientId === selected);
-    const others = (id) => shapes.filter((b) => b.clientId !== id && b.attributes.w).map((b) => boxOf(b.attributes));
+    const others = (id) => shapes.filter((b) => b.clientId !== id && b.attributes.width).map((b) => boxOf(b.attributes));
     const begin = (event, block, kind, handle) => {
       var _a, _b;
       event.stopPropagation();
@@ -393,7 +393,7 @@
       } else {
         next = resizeBox(drag.origin, drag.handle || "se", dx, dy, event.shiftKey, event.altKey);
       }
-      updateBlockAttributes(drag.id, { x: round(next.x), y: round(next.y), w: round(next.w), h: round(next.h) });
+      updateBlockAttributes(drag.id, { x: round(next.x), y: round(next.y), width: round(next.w), height: round(next.h) });
     };
     const end = () => {
       setDrag(null);
@@ -415,8 +415,8 @@
       }
     };
     const add = (name, attrs) => {
-      const w = Number(attrs.w) || 0;
-      const h = Number(attrs.h) || 0;
+      const w = Number(attrs.width) || 0;
+      const h = Number(attrs.height) || 0;
       const place = { x: round((width - w) / 2), y: round((height - h) / 2) };
       const inner = name === "draw/svg" ? [(0, import_blocks.createBlock)("draw/svg-path", { d: INFO_ICON })] : [];
       insertBlocks((0, import_blocks.createBlock)(name, { ...attrs, ...place }, inner), void 0, clientId);
@@ -433,7 +433,7 @@
 
   // plugins/draw/src/index.tsx
   var SHAPES2 = ["draw/rect", "draw/ellipse", "draw/line", "draw/path", "draw/image", "draw/text", "draw/svg"];
-  var NUMBERS = ["x", "y", "w", "h"];
+  var NUMBERS = ["x", "y", "width", "height"];
   function field(props, key, label) {
     return /* @__PURE__ */ (0, import_element3.createElement)(
       import_components2.TextControl,
@@ -456,7 +456,7 @@
   });
   SHAPES2.forEach((name) => {
     (0, import_blocks2.registerBlockType)(name, {
-      edit: (props) => /* @__PURE__ */ (0, import_element3.createElement)("div", { ...(0, import_block_editor2.useBlockProps)({ className: "draw-shape" }) }, /* @__PURE__ */ (0, import_element3.createElement)(import_block_editor2.InspectorControls, null, /* @__PURE__ */ (0, import_element3.createElement)(import_components2.PanelBody, { title: (0, import_i18n2.__)("Place and color", "draw") }, field(props, "x", "x"), field(props, "y", "y"), field(props, "w", "w"), field(props, "h", "h"), field(props, "fill", (0, import_i18n2.__)("Fill", "draw")))), /* @__PURE__ */ (0, import_element3.createElement)("strong", null, name.replace("draw/", "")), name === "draw/svg" ? /* @__PURE__ */ (0, import_element3.createElement)(import_block_editor2.InnerBlocks, { allowedBlocks: ["draw/svg-path"] }) : null),
+      edit: (props) => /* @__PURE__ */ (0, import_element3.createElement)("div", { ...(0, import_block_editor2.useBlockProps)({ className: "draw-shape" }) }, /* @__PURE__ */ (0, import_element3.createElement)(import_block_editor2.InspectorControls, null, /* @__PURE__ */ (0, import_element3.createElement)(import_components2.PanelBody, { title: (0, import_i18n2.__)("Place and color", "draw") }, field(props, "x", "x"), field(props, "y", "y"), field(props, "width", (0, import_i18n2.__)("Width", "draw")), field(props, "height", (0, import_i18n2.__)("Height", "draw")), field(props, "fill", (0, import_i18n2.__)("Fill", "draw")))), /* @__PURE__ */ (0, import_element3.createElement)("strong", null, name.replace("draw/", "")), name === "draw/svg" ? /* @__PURE__ */ (0, import_element3.createElement)(import_block_editor2.InnerBlocks, { allowedBlocks: ["draw/svg-path"] }) : null),
       save: () => name === "draw/svg" ? /* @__PURE__ */ (0, import_element3.createElement)(import_block_editor2.InnerBlocks.Content, null) : null
     });
   });

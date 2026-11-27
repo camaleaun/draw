@@ -21,7 +21,7 @@ export function paint( value: unknown, colors: Record< string, string >, other =
 
 /** The box of a shape (a line has its end points, not a box). */
 export function boxOf( a: Attrs ) {
-	return { x: Number( a.x ) || 0, y: Number( a.y ) || 0, w: Number( a.w ) || 0, h: Number( a.h ) || 0 };
+	return { x: Number( a.x ) || 0, y: Number( a.y ) || 0, w: Number( a.width ) || 0, h: Number( a.height ) || 0 };
 }
 
 /** One shape, drawn. Nothing that is not a color or a path reaches the SVG. */
@@ -43,14 +43,14 @@ export function Shape( { block, colors }: { block: ShapeBlock; colors: Record< s
 			break;
 		case 'draw/path':
 			inside = isPathData( a.d || '' ) ? (
-				<svg x={ x } y={ y } width={ w } height={ h } viewBox={ `0 0 ${ a.vw || 100 } ${ a.vh || 100 }` } overflow="hidden">
+				<svg x={ x } y={ y } width={ w } height={ h } viewBox={ String( a.viewBox || '0 0 100 100' ) } overflow="hidden">
 					<path d={ a.d } { ...common } />
 				</svg>
 			) : null;
 			break;
 		case 'draw/svg':
 			inside = (
-				<svg x={ x } y={ y } width={ w } height={ h } viewBox={ `0 0 ${ a.vw || 24 } ${ a.vh || 24 }` } overflow="hidden">
+				<svg x={ x } y={ y } width={ w } height={ h } viewBox={ String( a.viewBox || '0 0 24 24' ) } overflow="hidden">
 					{ ( block.innerBlocks || [] )
 						.filter( ( inner ) => inner.name === 'draw/svg-path' && isPathData( inner.attributes.d || '' ) )
 						.map( ( inner ) => (

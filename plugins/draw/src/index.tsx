@@ -11,7 +11,7 @@ import { DrawCanvas } from '@camaleaun/draw-editor';
 import { parseLen } from '@camaleaun/draw';
 
 const SHAPES = [ 'draw/rect', 'draw/ellipse', 'draw/line', 'draw/path', 'draw/image', 'draw/text', 'draw/svg' ];
-const NUMBERS = [ 'x', 'y', 'w', 'h' ];
+const NUMBERS = [ 'x', 'y', 'width', 'height' ];
 
 function field( props: any, key: string, label: string ) {
 	return (
@@ -54,8 +54,8 @@ SHAPES.forEach( ( name ) => {
 					<PanelBody title={ __( 'Place and color', 'draw' ) }>
 						{ field( props, 'x', 'x' ) }
 						{ field( props, 'y', 'y' ) }
-						{ field( props, 'w', 'w' ) }
-						{ field( props, 'h', 'h' ) }
+						{ field( props, 'width', __( 'Width', 'draw' ) ) }
+						{ field( props, 'height', __( 'Height', 'draw' ) ) }
 						{ field( props, 'fill', __( 'Fill', 'draw' ) ) }
 					</PanelBody>
 				</InspectorControls>

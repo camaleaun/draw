@@ -120,4 +120,37 @@ final class DesignTest extends TestCase {
 		$this->assertNull( Design::from_markup( '<!-- wp:draw/rect /-->' ), 'Not a certificate.' );
 		$this->assertNull( Design::from_markup( '{"elements":[]}' ), 'JSON of an earlier version.' );
 	}
+
+	public function test_an_element_is_written_with_the_names_of_a_block() {
+		$design = array(
+			'page'     => array( 'width' => '100mm', 'height' => '50mm' ),
+			'elements' => array(
+				array(
+					'id' => 'rect-2', 'type' => 'rect', 'x' => 1, 'y' => 2, 'w' => 30, 'h' => 20,
+					'layout' => array( 'h' => array( 'mode' => 'stretch' ), 'v' => array( 'mode' => 'start' ), 'ref' => 'safe' ),
+				),
+				array( 'id' => 'svg-mwzbwe9c-1', 'type' => 'svg', 'w' => 96, 'h' => 96, 'vw' => 24, 'vh' => 24, 'paths' => array( array( 'd' => 'M0 0L1 1Z' ) ) ),
+				array( 'id' => 'title', 'type' => 'text', 'lh' => 1.2, 'ls' => 0.5, 'runs' => array( array( 'text' => 'a', 'b' => true ), array( 'field' => 'name', 'i' => true ) ) ),
+				array( 'type' => 'line', 'x1' => 0, 'y1' => 0, 'x2' => 5, 'y2' => 5 ),
+			),
+		);
+		$markup = Design::to_markup( $design );
+
+		$this->assertStringContainsString( '"width":30,"height":20', $markup );
+		$this->assertStringContainsString( '"layout":{"horizontal":{"mode":"stretch"},"vertical":{"mode":"start"},"ref":"safe"}', $markup );
+		$this->assertStringContainsString( '"viewBox":"0 0 24 24"', $markup );
+		$this->assertStringContainsString( '"lineHeight":1.2,"letterSpacing":0.5', $markup );
+		$this->assertStringContainsString( '"bold":true', $markup );
+		$this->assertStringContainsString( '"italic":true', $markup );
+		$this->assertStringContainsString( '"x1":0', $markup, 'The coordinates of a line stay.' );
+		$this->assertStringContainsString( '"id":"title"', $markup, 'An id that means something stays.' );
+		$this->assertSame( 0, preg_match( '/"id":"(rect-2|svg-)/', $markup ), 'An id that only counts is not written.' );
+		$this->assertSame( 0, preg_match( '/"(w|h|vw|vh|lh|ls|b|i)":/', $markup ), 'No short name.' );
+
+		$back = Design::from_markup( $markup );
+		$this->assertSame( array( 'rect-1', 'svg-2', 'title', 'line-4' ), array_column( $back['elements'], 'id' ), 'Made again by position.' );
+		unset( $back['elements'][0]['id'], $back['elements'][1]['id'], $back['elements'][3]['id'] );
+		unset( $design['elements'][0]['id'], $design['elements'][1]['id'] );
+		$this->assertEquals( $design['elements'], $back['elements'] );
+	}
 }

@@ -72,3 +72,30 @@ test( 'the default is the native one: the options are not needed', () => {
 	assert.equal( toMarkup( design ), toMarkup( design, {} ) );
 	assert.ok( toMarkup( design ).includes( 'wp:draw/svg-path' ) );
 } );
+
+test( 'an element is written with the names of a block, and read back with the model\'s', () => {
+	const design = {
+		page: { width: '100mm', height: '50mm' },
+		elements: [
+			{ id: 'rect-2', type: 'rect', x: 1, y: 2, w: 30, h: 20, layout: { h: { mode: 'stretch' }, v: { mode: 'start' }, ref: 'safe' } },
+			{ id: 'svg-mwzbwe9c-1', type: 'svg', w: 96, h: 96, vw: 24, vh: 24, paths: [ { d: 'M0 0L1 1Z' } ] },
+			{ id: 'title', type: 'text', lh: 1.2, ls: 0.5, runs: [ { text: 'a', b: true }, { field: 'name', i: true } ] },
+			{ type: 'line', x1: 0, y1: 0, x2: 5, y2: 5 },
+		],
+	};
+	const markup = toMarkup( design );
+	assert.ok( markup.includes( '"width":30,"height":20' ) );
+	assert.ok( markup.includes( '"layout":{"horizontal":{"mode":"stretch"},"vertical":{"mode":"start"},"ref":"safe"}' ) );
+	assert.ok( markup.includes( '"viewBox":"0 0 24 24"' ) );
+	assert.ok( markup.includes( '"lineHeight":1.2,"letterSpacing":0.5' ) );
+	assert.ok( markup.includes( '"bold":true' ) && markup.includes( '"italic":true' ) );
+	assert.ok( markup.includes( '"x1":0' ), 'the coordinates of a line stay' );
+	assert.ok( markup.includes( '"id":"title"' ), 'an id that means something stays' );
+	assert.equal( /"id":"(rect-2|svg-)/.test( markup ), false, 'an id that only counts is not written' );
+	assert.equal( /"(w|h|vw|vh|lh|ls|b|i)":/.test( markup ), false, 'no short name' );
+	const back = fromMarkup( markup );
+	assert.deepEqual( back.elements.map( ( e ) => e.id ), [ 'rect-1', 'svg-2', 'title', 'line-4' ], 'made again by position' );
+	const strip = ( e ) => { const { id, ...rest } = e; return rest; };
+	assert.deepEqual( back.elements.map( strip ), design.elements.map( strip ) );
+} );
+

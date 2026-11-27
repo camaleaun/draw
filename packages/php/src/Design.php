@@ -113,12 +113,12 @@ final class Design {
 		foreach ( $blocks[0]['children'] as $child ) {
 			if ( self::BACK === $child['name'] ) {
 				$design['back'] = $child['attrs'] + array( 'elements' => array() );
-				$design['back']['elements'] = self::elements( $child['children'], $options );
+				$design['back']['elements'] = Names::with_ids( self::elements( $child['children'], $options ) );
 				continue;
 			}
 			$elements[] = self::element( $child, $options );
 		}
-		$design['elements'] = $elements;
+		$design['elements'] = Names::with_ids( $elements );
 
 		return $design;
 	}
@@ -147,7 +147,7 @@ final class Design {
 				continue;
 			}
 			$type  = (string) ( $element['type'] ?? '' );
-			$attrs = $element;
+			$attrs = Names::to_attrs( $element );
 			unset( $attrs['type'] );
 			$children = array();
 			if ( 'svg' === $type && 'inner' === $options['paths'] && is_array( $element['paths'] ?? null ) ) {
@@ -204,10 +204,10 @@ final class Design {
 	 */
 	private static function element( array $block, array $options ) {
 		if ( $options['fallback'] === $block['name'] ) {
-			return $block['attrs'];
+			return Names::from_attrs( $block['attrs'] );
 		}
 		$type    = (string) array_search( $block['name'], $options['blocks'], true );
-		$element = array( 'type' => $type ) + $block['attrs'];
+		$element = array( 'type' => $type ) + Names::from_attrs( $block['attrs'] );
 		if ( 'svg' === $type && 'inner' === $options['paths'] && ! isset( $element['markup'] ) ) {
 			$element['paths'] = array();
 			foreach ( $block['children'] as $path ) {

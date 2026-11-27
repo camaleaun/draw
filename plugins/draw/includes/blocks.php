@@ -11,6 +11,7 @@
 namespace Camaleaun\DrawPlugin;
 
 use Camaleaun\Draw\Clean;
+use Camaleaun\Draw\Names;
 use Camaleaun\Draw\Page;
 use Camaleaun\Draw\Paths;
 use Camaleaun\Draw\Svg;
@@ -86,7 +87,7 @@ function inside_frame( $block ) {
  * @return array<string, mixed>|null
  */
 function clean_shape( $type, array $attributes ) {
-	return cleaner()->element( array( 'type' => $type, 'id' => 'shape' ) + $attributes ); // phpcs:ignore Universal.Arrays.MultipleStatementAlignment
+	return cleaner()->element( array( 'type' => $type, 'id' => 'shape' ) + Names::from_attrs( $attributes ) ); // phpcs:ignore Universal.Arrays.MultipleStatementAlignment
 }
 
 /**
@@ -168,11 +169,12 @@ add_action(
 					'parent'          => array( 'draw/frame' ), // A shape is only drawn inside a frame.
 					'uses_context'    => array( 'draw/colors' ),
 					'attributes'      => array(
-						'x'    => array( 'type' => 'number' ),
-						'y'    => array( 'type' => 'number' ),
-						'w'    => array( 'type' => 'number' ),
-						'h'    => array( 'type' => 'number' ),
-						'fill' => array( 'type' => 'string' ),
+						'x'       => array( 'type' => 'number' ),
+						'y'       => array( 'type' => 'number' ),
+						'width'   => array( 'type' => 'number' ),
+						'height'  => array( 'type' => 'number' ),
+						'viewBox' => array( 'type' => 'string' ),
+						'fill'    => array( 'type' => 'string' ),
 					),
 					'editor_script'   => 'draw-editor',
 					'render_callback' => static function ( $attributes, $content, $block ) use ( $name ) {

@@ -33,6 +33,16 @@ place of the signer's signature) gives them to the cleaning, with the keys of th
 array( 'color' ) ) ) )`; what an element has beside those keys is what every element has (`id`, `name`, `x y w h`, `layout`, `views`, `rotation`,
 `opacity`, `lock`, `slot`). And the block of the type is given in the `blocks` option of `Design` (see Options). Without `types` there are none.
 
+### The names of an element
+
+An element is written with the names a block says, never abbreviated: `width` and `height` (the model's `w` and `h`), `viewBox` (`vw` and `vh`),
+`lineHeight` and `letterSpacing` (`lh` and `ls`, also in the hint and the code of a verification), `horizontal` and `vertical` in a `layout` (`h` and `v`),
+and `bold` and `italic` in a run of a text (`b` and `i`). `x` and `y` and the coordinates of a line (`x1 y1 x2 y2`) stay. An `id` that only counts the
+elements (`rect-2`, or the editor's `svg-mwzbwe9c-1`) is not written: it is made again by position (`<type>-<position>`) when the markup is read; an id
+that means something (`title`, `logo`) stays. `Names::to_attrs()` / `Names::from_attrs()` (PHP) and `toAttrs()` / `fromAttrs()` (TypeScript) do it, inside
+`Design`; the model in memory, the cleaning and the drawing keep the short names. The shapes of the Draw plugin (`draw/rect`…) have the same attributes
+(`width`, `height`, `viewBox`).
+
 ### The page and its size
 
 The page of a design is kept with lengths with their unit (`width`, `height`, `safe`, `bleed`) and **no version**: the unit says what it is. `width` and
