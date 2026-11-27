@@ -153,11 +153,18 @@ export function lockedSide( layout: Layout ): 'w' | 'h' | null {
 	return v ? 'w' : 'h';
 }
 
-/** Writes a length back, in the unit it was written in (% stays %, anything else becomes pt). */
+/**
+ * Writes a length back, in the unit it was written in (pt, px, mm, cm, in or %; a calc() or what has no unit becomes pt), to two decimals in that unit
+ * (three in inches). px is the point (UNITS.px), so a value in px is written in px and means the same.
+ */
 function lenLike( previous: string | undefined, pt: number, total: number ): string {
-	const round = ( n: number ) => Math.round( n * 100 ) / 100;
-	if ( previous && /%\s*$/.test( previous ) && ! /calc/i.test( previous ) ) {
+	const unit = previous && ! /calc/i.test( previous ) ? /(pt|px|mm|cm|in|%)\s*$/i.exec( previous )?.[ 1 ].toLowerCase() : undefined;
+	const round = ( n: number, digits = 2 ) => Math.round( n * 10 ** digits ) / 10 ** digits;
+	if ( unit === '%' ) {
 		return `${ round( ( pt / total ) * 100 ) }%`;
+	}
+	if ( unit && unit !== 'pt' && UNITS[ unit ] ) {
+		return `${ round( pt / UNITS[ unit ], unit === 'in' ? 3 : 2 ) }${ unit }`;
 	}
 	return `${ round( pt ) }pt`;
 }
@@ -193,13 +200,25 @@ export function placed< T extends Placeable >( stored: T, b: Box, page: PageBox 
 
 
 /**
+ * A corner radius in points: a number is points, "25%" is that share of the shorter side (0 to 50%: 50% makes a pill or a circle). Anything else is 0.
+ * The same as Svg::radius() in PHP.
+ */
+export function radiusPt( value: number | string | undefined, w: number, h: number ): number {
+	if ( typeof value === 'string' ) {
+		const m = /^\s*(-?\d*\.?\d+)\s*%\s*$/.exec( value );
+		return m ? ( Math.max( 0, Math.min( Number( m[ 1 ] ), 50 ) ) / 100 ) * Math.min( w, h ) : 0;
+	}
+	return typeof value === 'number' && Number.isFinite( value ) ? value : 0;
+}
+
+/**
  * A rectangle's outline as an SVG path, with each corner drawn in a shape like
  * CSS corner-shape (round, scoop, bevel, notch, squircle). A path, so the PDF
  * draws exactly what the editor shows. Radii: [top-left, top-right,
  * bottom-right, bottom-left], clamped to half the shorter side.
  */
-export function rectPath( x: number, y: number, w: number, h: number, radius: number[] = [], shape: CornerShape = 'round' ): string {
-	const r = [ 0, 1, 2, 3 ].map( ( i ) => Math.max( 0, Math.min( radius[ i ] || 0, w / 2, h / 2 ) ) );
+export function rectPath( x: number, y: number, w: number, h: number, radius: Array< number | string > = [], shape: CornerShape = 'round' ): string {
+	const r = [ 0, 1, 2, 3 ].map( ( i ) => Math.max( 0, Math.min( radiusPt( radius[ i ], w, h ), w / 2, h / 2 ) ) );
 	const f = ( n: number ) => Math.round( n * 100 ) / 100;
 	// Corner points and the directions along the edges into and out of each corner.
 	const corners = [

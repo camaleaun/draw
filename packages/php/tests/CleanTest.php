@@ -198,4 +198,18 @@ final class CleanTest extends TestCase {
 		$this->assertSame( '$branco', $clean['colors']['fundo']['light'] );
 		$this->assertSame( '$preto', $clean['colors']['fundo']['dark'] );
 	}
+
+	public function test_a_corner_radius_may_be_a_percentage_and_a_color_may_be_the_current_one() {
+		$design = array(
+			'page'     => array( 'width' => '100mm', 'height' => '100mm' ),
+			'elements' => array(
+				array( 'id' => 'r', 'type' => 'rect', 'x' => 0, 'y' => 0, 'w' => 10, 'h' => 10, 'radius' => array( '25%', 12, '90%', 'abc' ), 'fill' => 'CURRENTCOLOR', 'stroke' => '#00000000' ),
+			),
+		);
+		$clean  = $this->clean()->design( $design );
+		$rect   = $clean['elements'][0];
+		$this->assertSame( array( '25%', 12, '50%', 0 ), $rect['radius'] );
+		$this->assertSame( 'currentColor', $rect['fill'] );
+		$this->assertSame( '#00000000', $rect['stroke'] );
+	}
 }

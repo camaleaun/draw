@@ -11,6 +11,27 @@ namespace Camaleaun\Draw;
 final class Svg {
 
 	/**
+	 * A corner radius in points: a number is points, "25%" is that share of the shorter side (0 to 50%: 50% makes a pill or a circle); anything else is 0.
+	 * The same as radiusPt() of the TypeScript package.
+	 *
+	 * @param mixed $value Radius.
+	 * @param float $w     The box's width.
+	 * @param float $h     The box's height.
+	 * @return float
+	 */
+	public static function radius( $value, $w, $h ) {
+		if ( is_string( $value ) ) {
+			if ( 1 === preg_match( '/^\s*(-?\d*\.?\d+)\s*%\s*$/', $value, $m ) ) {
+				return max( 0.0, min( (float) $m[1], 50.0 ) ) / 100 * min( $w, $h );
+			}
+
+			return 0.0;
+		}
+
+		return is_numeric( $value ) ? (float) $value : 0.0;
+	}
+
+	/**
 	 * The drawing of a frame.
 	 *
 	 * @param array<int, array<string, mixed>> $elements Elements (each with `type`, as Design reads them).
@@ -107,7 +128,7 @@ final class Svg {
 		}
 		switch ( $type ) {
 			case 'rect':
-				$r      = is_array( $el['radius'] ?? null ) ? (float) ( $el['radius'][0] ?? 0 ) : 0.0;
+				$r      = is_array( $el['radius'] ?? null ) ? self::radius( $el['radius'][0] ?? 0, (float) $w, (float) $h ) : 0.0;
 				$inside = sprintf( '<rect x="%s" y="%s" width="%s" height="%s"%s%s/>', self::n( $x ), self::n( $y ), self::n( $w ), self::n( $h ), $r > 0 ? ' rx="' . self::n( $r ) . '"' : '', $attrs );
 				break;
 			case 'ellipse':

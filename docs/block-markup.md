@@ -44,6 +44,14 @@ types in the `names` option (`array( 'signature' => 'Signature', 'image:logo' =>
 `Design`; the model in memory, the cleaning and the drawing keep the short names. The shapes of the Draw plugin (`draw/rect`…) have the same attributes
 (`width`, `height`, `viewBox`).
 
+### Lengths, radius and current color
+
+A length an element is anchored by (`layout`: `start`, `end`, `size`) is written in the unit it was written in (`pt`, `px`, `mm`, `cm`, `in` or `%`): moving or resizing
+an element on the canvas changes the number, not the unit (two decimals, three in inches). `px` is the point (`UNITS.px` is 1), the same as in the page's lengths.
+
+A rectangle's corner `radius` is a number (points) or a percentage of the shorter side (`"25%"`, 0 to 50%; 50% makes a pill or a circle): `radiusPt()` (TypeScript)
+and `Svg::radius()` (PHP). A color may be `currentColor`: the color of the text around it, which the host defines (the certificate's text color).
+
 ### The page and its size
 
 The page of a design is kept with lengths with their unit (`width`, `height`, `safe`, `bleed`) and **no version**: the unit says what it is. `width` and

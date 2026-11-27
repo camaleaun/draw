@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { pageSize, parseLen, isLen, refBox, resolve, placed, layoutFrom, lockedRatio, rectPath, svgCodeAllowed, isPathData, isFill } from '../dist/index.js';
+import { radiusPt, pageSize, parseLen, isLen, refBox, resolve, placed, layoutFrom, lockedRatio, rectPath, svgCodeAllowed, isPathData, isFill } from '../dist/index.js';
 
 const page = { w: 800, h: 600, safe: 28.3465 };
 
@@ -77,3 +77,29 @@ test( 'the size of a page is in the unit that makes it round', () => {
 	assert.deepEqual( pageSize( 800, 600 ), [ '800pt', '600pt' ] );
 	assert.deepEqual( pageSize( 812.3, 600 ), [ '812.3pt', '600pt' ] );
 } );
+
+test( 'a length is written back in the unit it was written in, to two decimals (three in inches)', () => {
+	const page = { w: 842, h: 595, safe: 0 };
+	const box = { x: 28.3465, y: 56.693, w: 85.0395, h: 14.17325 };
+	const mm = layoutFrom( { h: { mode: 'start', start: '1mm', size: '1mm' }, v: { mode: 'start', start: '1mm', size: '1mm' } }, box, page );
+	assert.deepEqual( [ mm.h.start, mm.h.size, mm.v.start, mm.v.size ], [ '10mm', '30mm', '20mm', '5mm' ] );
+	const inches = layoutFrom( { h: { mode: 'start', start: '0in', size: '1in' }, v: { mode: 'start', start: '0in', size: '1in' } }, { x: 36, y: 18, w: 90, h: 9 }, page );
+	assert.deepEqual( [ inches.h.start, inches.h.size, inches.v.start, inches.v.size ], [ '0.5in', '1.25in', '0.25in', '0.125in' ] );
+	const px = layoutFrom( { h: { mode: 'start', start: '0px', size: '0px' }, v: { mode: 'start', start: '0', size: '0' } }, { x: 12.345, y: 5, w: 100, h: 20 }, page );
+	assert.deepEqual( [ px.h.start, px.h.size, px.v.start ], [ '12.35px', '100px', '5pt' ], 'px is kept; no unit is pt' );
+	const percent = layoutFrom( { h: { mode: 'start', start: '0%', size: '0%' }, v: { mode: 'end', end: '0pt', size: '0pt' } }, { x: 84.2, y: 0, w: 421, h: 100 }, page );
+	assert.deepEqual( [ percent.h.start, percent.h.size ], [ '10%', '50%' ] );
+	const calc = layoutFrom( { h: { mode: 'start', start: 'calc(1pt + 1pt)', size: '1pt' }, v: { mode: 'start' } }, { x: 10, y: 0, w: 5, h: 5 }, page );
+	assert.equal( calc.h.start, '10pt', 'a calc() becomes pt' );
+} );
+
+test( 'a corner radius is points or a percentage of the shorter side, 0 to 50%', () => {
+	assert.equal( radiusPt( 12, 100, 40 ), 12 );
+	assert.equal( radiusPt( '25%', 100, 40 ), 10 );
+	assert.equal( radiusPt( '50%', 100, 40 ), 20, '50% makes a pill' );
+	assert.equal( radiusPt( '80%', 100, 40 ), 20, 'no more than 50%' );
+	assert.equal( radiusPt( 'abc', 100, 40 ), 0 );
+	assert.equal( radiusPt( undefined, 100, 40 ), 0 );
+	assert.equal( rectPath( 0, 0, 100, 40, [ '50%', 0, 0, '50%' ] ), rectPath( 0, 0, 100, 40, [ 20, 0, 0, 20 ] ), 'the same path as the radius in points' );
+} );
+

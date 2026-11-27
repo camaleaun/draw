@@ -104,6 +104,10 @@ final class Clean {
 		if ( $with_variable && preg_match( '/^\$[a-z0-9_-]{1,40}$/i', $value ) ) {
 			return $value;
 		}
+		// The color of the text around: a shape that says it takes the color of the document's text (the host decides which).
+		if ( 0 === strcasecmp( $value, 'currentColor' ) ) {
+			return 'currentColor';
+		}
 		$number = '-?[0-9]*\.?[0-9]+%?';
 		if ( preg_match( '/^(#[0-9a-f]{3,4}|#[0-9a-f]{6}|#[0-9a-f]{8}|none|transparent)$/i', $value )
 			|| preg_match( '/^(rgb|hsl)a?\(\s*' . $number . '(deg)?\s*[,\s]\s*' . $number . '\s*[,\s]\s*' . $number . '(\s*[,\/]\s*' . $number . ')?\s*\)$/i', $value ) ) {
@@ -363,6 +367,11 @@ final class Clean {
 				if ( is_array( $element['radius'] ?? null ) ) {
 					$out['radius'] = array();
 					foreach ( array_slice( array_values( $element['radius'] ), 0, 4 ) as $radius ) {
+						// Points, or a percentage of the shorter side ("25%", 0 to 50: 50% makes a pill).
+						if ( is_string( $radius ) && 1 === preg_match( '/^\s*(\d*\.?\d+)\s*%\s*$/', $radius, $m ) ) {
+							$out['radius'][] = (string) ( round( min( (float) $m[1], 50.0 ), 2 ) + 0 ) . '%';
+							continue;
+						}
 						$out['radius'][] = $this->clean_number( $radius, 0, 5000 ) ?? 0;
 					}
 				}

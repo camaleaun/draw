@@ -56,4 +56,12 @@ final class SvgTest extends TestCase {
 		$this->assertStringStartsWith( '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 120"', $frame );
 		$this->assertSame( 2, substr_count( $frame, '<svg ' ) );
 	}
+
+	public function test_a_radius_is_points_or_a_percentage_of_the_shorter_side() {
+		$this->assertSame( 12.0, Svg::radius( 12, 100.0, 40.0 ) );
+		$this->assertSame( 10.0, Svg::radius( '25%', 100.0, 40.0 ) );
+		$this->assertSame( 20.0, Svg::radius( '50%', 100.0, 40.0 ) );
+		$this->assertSame( 20.0, Svg::radius( '80%', 100.0, 40.0 ) );
+		$this->assertSame( 0.0, Svg::radius( 'abc', 100.0, 40.0 ) );
+	}
 }
