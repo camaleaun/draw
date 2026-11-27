@@ -48,3 +48,27 @@ test( 'markup written by PHP is read the same (the escaping of -- and < is under
 	const markup = '<!-- wp:events-certificates/certificate {"page":{"w":1,"h":1}} -->\n\t<!-- wp:draw/text {"id":"t","runs":[{"text":"\\u002d\\u002d\\u003e \\u003cb\\u003e"}]} /-->\n<!-- /wp:events-certificates/certificate -->\n';
 	assert.equal( fromMarkup( markup ).elements[ 0 ].runs[ 0 ].text, '--> <b>' );
 } );
+
+test( 'the options make an svg one block with its paths as an attribute, and give the types their own blocks', () => {
+	const options = { blocks: { text: 'events-certificates/certificate-text', svg: 'events-certificates/certificate-svg' }, fallback: 'events-certificates/certificate-element', paths: 'attribute' };
+	const design = { page: { width: '10px' }, elements: [
+		{ type: 'svg', id: 's', vw: 24, vh: 24, paths: [ { d: 'M0 0L1 1Z', fill: '$text' }, { d: 'M2 2L3 3Z' } ] },
+		{ type: 'text', id: 't', x: 1 },
+		{ type: 'rect', id: 'r' },
+		{ type: 'star', id: 'x' },
+	] };
+	const markup = toMarkup( design, options );
+	assert.ok( markup.includes( '<!-- wp:events-certificates/certificate-svg {' ) );
+	assert.ok( markup.includes( '"paths":[{"d":"M0 0L1 1Z","fill":"$text"},{"d":"M2 2L3 3Z"}]' ) );
+	assert.ok( markup.includes( '<!-- wp:events-certificates/certificate-text {' ) );
+	assert.ok( markup.includes( '<!-- wp:events-certificates/certificate-element {' ) );
+	assert.ok( markup.includes( '<!-- wp:draw/rect {' ) );
+	assert.ok( ! markup.includes( 'wp:draw/svg' ) );
+	assert.deepEqual( canon( fromMarkup( markup, options ) ), canon( design ) );
+} );
+
+test( 'the default is the native one: the options are not needed', () => {
+	const design = { page: {}, elements: [ { type: 'svg', id: 's', paths: [ { d: 'M0 0Z' } ] } ] };
+	assert.equal( toMarkup( design ), toMarkup( design, {} ) );
+	assert.ok( toMarkup( design ).includes( 'wp:draw/svg-path' ) );
+} );

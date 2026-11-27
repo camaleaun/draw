@@ -55,6 +55,50 @@ final class DesignTest extends TestCase {
 		$this->assertCount( 2, Design::from_markup( $markup )['elements'][0]['paths'] );
 	}
 
+	/**
+	 * The options of a certificate: its own blocks, and an SVG that is one block with its paths as an attribute.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function certificate_options() {
+		return array(
+			'blocks'   => array(
+				'text' => 'events-certificates/certificate-text',
+				'svg'  => 'events-certificates/certificate-svg',
+			),
+			'fallback' => 'events-certificates/certificate-element',
+			'paths'    => 'attribute',
+		);
+	}
+
+	public function test_the_options_make_an_svg_one_block_with_its_paths_as_an_attribute() {
+		$design  = array(
+			'page'     => array( 'width' => '10px' ),
+			'elements' => array(
+				array( 'type' => 'svg', 'id' => 's', 'vw' => 24, 'vh' => 24, 'paths' => array( array( 'd' => 'M0 0L1 1Z', 'fill' => '$text' ), array( 'd' => 'M2 2L3 3Z' ) ) ),
+				array( 'type' => 'text', 'id' => 't', 'x' => 1 ),
+				array( 'type' => 'rect', 'id' => 'r' ),
+				array( 'type' => 'star', 'id' => 'x' ),
+			),
+		);
+		$options = $this->certificate_options();
+		$markup  = Design::to_markup( $design, $options );
+		$this->assertStringContainsString( '<!-- wp:events-certificates/certificate-svg {', $markup );
+		$this->assertStringContainsString( '"paths":[{"d":"M0 0L1 1Z","fill":"$text"},{"d":"M2 2L3 3Z"}]', $markup );
+		$this->assertStringContainsString( '<!-- wp:events-certificates/certificate-text {', $markup );
+		$this->assertStringContainsString( '<!-- wp:events-certificates/certificate-element {', $markup );
+		// What is not named in the options keeps its default block.
+		$this->assertStringContainsString( '<!-- wp:draw/rect {', $markup );
+		$this->assertStringNotContainsString( 'wp:draw/svg', $markup );
+		$this->assertSame( $this->canon( $design ), $this->canon( Design::from_markup( $markup, $options ) ) );
+	}
+
+	public function test_the_options_are_not_needed_for_the_default() {
+		$design = array( 'page' => array(), 'elements' => array( array( 'type' => 'svg', 'id' => 's', 'paths' => array( array( 'd' => 'M0 0Z' ) ) ) ) );
+		$this->assertSame( Design::to_markup( $design ), Design::to_markup( $design, array() ) );
+		$this->assertStringContainsString( 'wp:draw/svg-path', Design::to_markup( $design ) );
+	}
+
 	public function test_a_type_that_is_not_known_keeps_its_place() {
 		$design = array( 'page' => array( 'w' => 1, 'h' => 1 ), 'elements' => array( array( 'type' => 'future', 'id' => 'f', 'x' => 1 ) ) );
 		$this->assertSame( $design, Design::from_markup( Design::to_markup( $design ) ) );

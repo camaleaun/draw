@@ -6,6 +6,12 @@
  * block of its type (`draw/rect`, `draw/text`…), an SVG's paths are `draw/svg-path` inner blocks. Every key an element has is an attribute
  * of its block, so what goes in comes out the same.
  *
+ * That is the default, the native way of the blocks. A second argument changes it (the same for both directions):
+ *   - `blocks`:   the block of a type, over the defaults (`array( 'svg' => 'events-certificates/certificate-svg' )`);
+ *   - `fallback`: the block that keeps the elements of a type this version does not know (`draw/element` by default);
+ *   - `paths`:    `inner` (default: one `draw/svg-path` inner block for each path) or `attribute` (the SVG is one block with the
+ *                 `paths` attribute, `{"paths":[{"d":"…"},{"d":"…"}]}`, and no inner blocks).
+ *
  * @package Camaleaun\Draw
  */
 
@@ -19,6 +25,11 @@ final class Design {
 	const ROOT = 'events-certificates/certificate';
 	const BACK = 'events-certificates/certificate-back';
 	const PATH = 'draw/svg-path';
+
+	/**
+	 * The block that keeps an element of a type that is not known.
+	 */
+	const FALLBACK = 'draw/element';
 
 	/**
 	 * The block of each element type.
@@ -36,16 +47,32 @@ final class Design {
 	);
 
 	/**
+	 * The options with their defaults.
+	 *
+	 * @param array<string, mixed> $options Options (see the class).
+	 * @return array{blocks: array<string, string>, fallback: string, paths: string}
+	 */
+	private static function options( array $options ) {
+		return array(
+			'blocks'   => array_merge( self::BLOCKS, is_array( $options['blocks'] ?? null ) ? $options['blocks'] : array() ),
+			'fallback' => is_string( $options['fallback'] ?? null ) ? $options['fallback'] : self::FALLBACK,
+			'paths'    => 'attribute' === ( $options['paths'] ?? '' ) ? 'attribute' : 'inner',
+		);
+	}
+
+	/**
 	 * A design as block markup.
 	 *
-	 * @param array<string, mixed> $design The design.
+	 * @param array<string, mixed> $design  The design.
+	 * @param array<string, mixed> $options Options (see the class).
 	 * @return string
 	 */
-	public static function to_markup( array $design ) {
+	public static function to_markup( array $design, array $options = array() ) {
+		$options  = self::options( $options );
 		$elements = is_array( $design['elements'] ?? null ) ? $design['elements'] : array();
 		$root     = $design;
 		unset( $root['elements'], $root['back'] );
-		$children = self::blocks( $elements );
+		$children = self::blocks( $elements, $options );
 		if ( array_key_exists( 'back', $design ) && is_array( $design['back'] ) ) {
 			$back       = $design['back'];
 			$back_items = is_array( $back['elements'] ?? null ) ? $back['elements'] : array();
@@ -53,7 +80,7 @@ final class Design {
 			$children[] = array(
 				'name'     => self::BACK,
 				'attrs'    => $back,
-				'children' => self::blocks( $back_items ),
+				'children' => self::blocks( $back_items, $options ),
 			);
 		}
 
@@ -71,11 +98,13 @@ final class Design {
 	/**
 	 * A design from block markup.
 	 *
-	 * @param string $markup Markup.
+	 * @param string               $markup  Markup.
+	 * @param array<string, mixed> $options Options (see the class).
 	 * @return array<string, mixed>|null Null when it is not a certificate (no single root block, or not valid markup).
 	 */
-	public static function from_markup( $markup ) {
-		$blocks = Markup::parse( $markup );
+	public static function from_markup( $markup, array $options = array() ) {
+		$options = self::options( $options );
+		$blocks  = Markup::parse( $markup );
 		if ( ! $blocks || 1 !== count( $blocks ) || self::ROOT !== $blocks[0]['name'] ) {
 			return null;
 		}
@@ -84,10 +113,10 @@ final class Design {
 		foreach ( $blocks[0]['children'] as $child ) {
 			if ( self::BACK === $child['name'] ) {
 				$design['back'] = $child['attrs'] + array( 'elements' => array() );
-				$design['back']['elements'] = self::elements( $child['children'] );
+				$design['back']['elements'] = self::elements( $child['children'], $options );
 				continue;
 			}
-			$elements[] = self::element( $child );
+			$elements[] = self::element( $child, $options );
 		}
 		$design['elements'] = $elements;
 
@@ -107,10 +136,11 @@ final class Design {
 	/**
 	 * Elements as blocks.
 	 *
-	 * @param array<int, mixed> $elements Elements.
+	 * @param array<int, mixed>    $elements Elements.
+	 * @param array<string, mixed> $options  Options, with their defaults.
 	 * @return array<int, array<string, mixed>>
 	 */
-	private static function blocks( array $elements ) {
+	private static function blocks( array $elements, array $options ) {
 		$blocks = array();
 		foreach ( $elements as $element ) {
 			if ( ! is_array( $element ) ) {
@@ -120,7 +150,7 @@ final class Design {
 			$attrs = $element;
 			unset( $attrs['type'] );
 			$children = array();
-			if ( 'svg' === $type && is_array( $element['paths'] ?? null ) ) {
+			if ( 'svg' === $type && 'inner' === $options['paths'] && is_array( $element['paths'] ?? null ) ) {
 				unset( $attrs['paths'] );
 				foreach ( $element['paths'] as $path ) {
 					$children[] = array(
@@ -130,17 +160,17 @@ final class Design {
 					);
 				}
 			}
-			if ( ! isset( self::BLOCKS[ $type ] ) ) {
+			if ( ! isset( $options['blocks'][ $type ] ) ) {
 				// A type this version does not know keeps its place as a generic block, so nothing is lost in the trip.
 				$blocks[] = array(
-					'name'     => 'draw/element',
+					'name'     => $options['fallback'],
 					'attrs'    => array( 'type' => $type ) + $attrs,
 					'children' => array(),
 				);
 				continue;
 			}
 			$blocks[] = array(
-				'name'     => self::BLOCKS[ $type ],
+				'name'     => $options['blocks'][ $type ],
 				'attrs'    => $attrs,
 				'children' => $children,
 			);
@@ -152,26 +182,33 @@ final class Design {
 	/**
 	 * Blocks as elements.
 	 *
-	 * @param array<int, array<string, mixed>> $blocks Blocks.
+	 * @param array<int, array<string, mixed>> $blocks  Blocks.
+	 * @param array<string, mixed>             $options Options, with their defaults.
 	 * @return array<int, array<string, mixed>>
 	 */
-	private static function elements( array $blocks ) {
-		return array_map( array( __CLASS__, 'element' ), $blocks );
+	private static function elements( array $blocks, array $options ) {
+		return array_map(
+			static function ( $block ) use ( $options ) {
+				return self::element( $block, $options );
+			},
+			$blocks
+		);
 	}
 
 	/**
 	 * One block as an element.
 	 *
-	 * @param array<string, mixed> $block Block.
+	 * @param array<string, mixed> $block   Block.
+	 * @param array<string, mixed> $options Options, with their defaults.
 	 * @return array<string, mixed>
 	 */
-	private static function element( array $block ) {
-		if ( 'draw/element' === $block['name'] ) {
+	private static function element( array $block, array $options ) {
+		if ( $options['fallback'] === $block['name'] ) {
 			return $block['attrs'];
 		}
-		$type    = (string) array_search( $block['name'], self::BLOCKS, true );
+		$type    = (string) array_search( $block['name'], $options['blocks'], true );
 		$element = array( 'type' => $type ) + $block['attrs'];
-		if ( 'svg' === $type && ! isset( $element['markup'] ) ) {
+		if ( 'svg' === $type && 'inner' === $options['paths'] && ! isset( $element['markup'] ) ) {
 			$element['paths'] = array();
 			foreach ( $block['children'] as $path ) {
 				if ( self::PATH === $path['name'] ) {
