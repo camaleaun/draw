@@ -3,3 +3,5 @@ vendor/
 dist/
 .DS_Store
 *.log
+.phpunit.result.cache
+composer.lock
