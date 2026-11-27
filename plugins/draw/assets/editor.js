@@ -108,8 +108,15 @@
     }
     return matched ? sum : 0;
   }
+  function radiusPt(value, w, h) {
+    if (typeof value === "string") {
+      const m = /^\s*(-?\d*\.?\d+)\s*%\s*$/.exec(value);
+      return m ? Math.max(0, Math.min(Number(m[1]), 50)) / 100 * Math.min(w, h) : 0;
+    }
+    return typeof value === "number" && Number.isFinite(value) ? value : 0;
+  }
   function rectPath(x, y, w, h, radius = [], shape = "round") {
-    const r = [0, 1, 2, 3].map((i) => Math.max(0, Math.min(radius[i] || 0, w / 2, h / 2)));
+    const r = [0, 1, 2, 3].map((i) => Math.max(0, Math.min(radiusPt(radius[i], w, h), w / 2, h / 2)));
     const f = (n) => Math.round(n * 100) / 100;
     const corners = [
       { c: [x, y], in: [0, 1], out: [1, 0] },
