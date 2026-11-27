@@ -1,0 +1,48 @@
+# The tests of the packages, on every push and pull request: the PHP package on PHP 7.4 (the lowest it declares) and a current one, the TypeScript package
+# and the editor package's types on Node 24, and that the Draw plugin's script is the one the sources build (assets/editor.js is committed).
+name: CI
+
+on:
+  push:
+    branches: [ trunk ]
+    tags: [ 'v*' ]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  php:
+    name: PHP ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: [ '7.4', '8.3' ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          tools: composer
+      - run: composer install --no-interaction --prefer-dist
+      - run: vendor/bin/phpunit
+
+  typescript:
+    name: TypeScript
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: The package's tests (builds it first)
+        run: npm test
+      - name: The types of the editor package and of the Draw plugin
+        run: npm run check:editor
+      - name: assets/editor.js is what the sources build
+        run: |
+          npm run build:plugin
+          git diff --exit-code -- plugins/draw/assets/editor.js
