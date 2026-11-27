@@ -11,7 +11,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Camaleaun\\Draw\\": "src/"
+            "Camaleaun\\Draw\\": "packages/php/src/"
         }
     },
     "scripts": {

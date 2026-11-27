@@ -9,3 +9,12 @@ A drawing as blocks: pages made of rectangles, ellipses, lines, paths, SVG group
 - `tests/golden` — designs used by the PHP and the JS tests, so both read the same.
 
 Used by [Events Certificates](https://github.com/camaleaun/events-certificates), whose certificate is the `events-certificates/certificate` block.
+
+## Install
+
+```
+composer require camaleaun/draw
+npm install @camaleaun/draw
+```
+
+(The Composer package is the repository root: its classes are in `packages/php/src`.)
