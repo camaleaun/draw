@@ -533,12 +533,14 @@ final class Clean {
 
 		$out['colors'] = array();
 		foreach ( array_slice( is_array( $design['colors'] ?? null ) ? $design['colors'] : array(), 0, self::MAX_COLORS, true ) as $key => $value ) {
-			if ( '' === $this->clean_key( (string) $key, 40 ) || ! is_array( $value ) || '' === $this->clean_color( $value['light'] ?? '', false ) ) {
+			// A color may have no Light value ("none": Clear); one with a value that is not a color is dropped.
+			$light = is_array( $value ) ? (string) ( $value['light'] ?? '' ) : '';
+			if ( '' === $this->clean_key( (string) $key, 40 ) || ! is_array( $value ) || ( '' !== trim( $light ) && '' === $this->clean_color( $light, false ) ) ) {
 				continue;
 			}
 			$item = array(
 				'name'  => $this->clean_text( $value['name'] ?? '', 80 ),
-				'light' => $this->clean_color( $value['light'], false ),
+				'light' => $this->clean_color( $light, false ),
 			);
 			if ( '' !== $this->clean_color( $value['dark'] ?? '', false ) ) {
 				$item['dark'] = $this->clean_color( $value['dark'], false );

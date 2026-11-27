@@ -170,4 +170,21 @@ final class CleanTest extends TestCase {
 		$this->assertSame( array( '800pt', '600pt' ), Page::size( 800, 600 ), 'None of the units is round: points.' );
 		$this->assertSame( array( '812.3pt', '600pt' ), Page::size( 812.3, 600 ) );
 	}
+
+	public function test_a_color_may_have_no_light_value() {
+		$design = array(
+			'page'     => array( 'width' => '100mm', 'height' => '100mm' ),
+			'colors'   => array(
+				'none'  => array( 'name' => 'None', 'light' => '' ),
+				'noval' => array( 'name' => 'No value' ),
+				'bad'   => array( 'name' => 'Bad', 'light' => 'red;background:url(//evil)' ),
+				'ok'    => array( 'name' => 'Ok', 'light' => '#112233', 'dark' => '#ffffff' ),
+			),
+			'elements' => array(),
+		);
+		$clean  = $this->clean()->design( $design );
+		$this->assertSame( array( 'none', 'noval', 'ok' ), array_keys( $clean['colors'] ) );
+		$this->assertSame( '', $clean['colors']['none']['light'] );
+		$this->assertSame( '#112233', $clean['colors']['ok']['light'] );
+	}
 }
