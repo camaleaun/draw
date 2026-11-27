@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseLen, isLen, refBox, resolve, placed, layoutFrom, lockedRatio, rectPath, svgCodeAllowed, isPathData, isFill } from '../dist/index.js';
+import { pageSize, parseLen, isLen, refBox, resolve, placed, layoutFrom, lockedRatio, rectPath, svgCodeAllowed, isPathData, isFill } from '../dist/index.js';
 
 const page = { w: 800, h: 600, safe: 28.3465 };
 
@@ -66,4 +66,14 @@ test( 'resizing by a handle keeps the opposite side, the ratio and the centre wh
 	assert.deepEqual( resizeBox( box, 'se', 40, 0, true ), { x: 100, y: 100, w: 240, h: 120 } );
 	assert.deepEqual( resizeBox( box, 'e', 20, 0, false, true ), { x: 80, y: 100, w: 240, h: 100 } );
 	assert.equal( resizeBox( box, 'e', -500, 0, false ).w, 4, 'never smaller than 4' );
+} );
+
+test( 'the size of a page is in the unit that makes it round', () => {
+	assert.deepEqual( pageSize( 841.89, 595.28 ), [ '297mm', '210mm' ] );
+	assert.deepEqual( pageSize( 595.28, 841.89 ), [ '210mm', '297mm' ] );
+	assert.deepEqual( pageSize( 792, 612 ), [ '11in', '8.5in' ] );
+	assert.deepEqual( pageSize( 419.53, 595.28 ), [ '148mm', '210mm' ] );
+	assert.deepEqual( pageSize( 283.47, 283.47 ), [ '100mm', '100mm' ] );
+	assert.deepEqual( pageSize( 800, 600 ), [ '800pt', '600pt' ] );
+	assert.deepEqual( pageSize( 812.3, 600 ), [ '812.3pt', '600pt' ] );
 } );

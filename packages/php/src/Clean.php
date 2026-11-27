@@ -507,10 +507,9 @@ final class Clean {
 		if ( strlen( (string) json_encode( $design ) ) > self::MAX_BYTES ) {
 			return null;
 		}
-		// The page may come in either form (points, or lengths with a unit); here it is cleaned as points and written as version 2.
+		// The page may come in either form (points, or lengths with a unit); here it is cleaned as points (and written with units by Page::stored()).
 		$page = Page::in_points( $design )['page'];
 		$out  = array(
-			'version' => 2,
 			'page'    => array(
 				'w'     => $this->clean_number( $page['w'] ?? 841.89, 10, 5000 ) ?? 841.89,
 				'h'     => $this->clean_number( $page['h'] ?? 595.28, 10, 5000 ) ?? 595.28,

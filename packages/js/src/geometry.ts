@@ -21,6 +21,44 @@ export type Layout = { h: Axis; v: Axis; ref?: 'page' | 'safe' };
 
 export const UNITS: Record< string, number > = { pt: 1, px: 1, mm: 2.83465, cm: 28.3465, in: 72 };
 
+/**
+ * The width and height of a page as lengths in the unit that makes both round: inches, millimeters or, when neither does, points. An A4 is
+ * "297mm" by "210mm" (in points it would be 841.89 by 595.28), a letter "11in" by "8.5in". Of the two units that are exact, the one with the fewest
+ * decimals wins, and a tie is in; points are for a page that is round in neither.
+ * The same as Page::size() in PHP.
+ */
+export function pageSize( w: number, h: number ): [ string, string ] {
+	const round = ( n: number, d: number ) => Math.round( n * 10 ** d ) / 10 ** d;
+	const text = ( n: number ) => String( round( n, 2 ) );
+	let best: { digits: number; parts: [ string, string ] } | null = null;
+	for ( const unit of [ 'in', 'mm' ] ) {
+		const factor = UNITS[ unit ];
+		const parts: string[] = [];
+		let digits = 0;
+		let ok = true;
+		for ( const points of [ w, h ] ) {
+			let found: [ number, number ] | null = null;
+			for ( let d = 0; d <= 2; d++ ) {
+				const value = round( points / factor, d );
+				if ( Math.abs( value * factor - points ) < 0.006 ) {
+					found = [ d, value ];
+					break;
+				}
+			}
+			if ( ! found ) {
+				ok = false;
+				break;
+			}
+			digits = Math.max( digits, found[ 0 ] );
+			parts.push( text( found[ 1 ] ) + unit );
+		}
+		if ( ok && ( ! best || digits < best.digits ) ) {
+			best = { digits, parts: parts as [ string, string ] };
+		}
+	}
+	return best ? best.parts : [ `${ text( w ) }pt`, `${ text( h ) }pt` ];
+}
+
 /** A length in pt: "20pt", "10mm", "5%", "calc(100% - 40pt)" (terms joined by + or -), or a bare number (pt). */
 export function parseLen( value: string | number | undefined, total: number ): number {
 	if ( value === undefined || value === '' ) {

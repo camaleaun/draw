@@ -40,7 +40,7 @@ final class CleanTest extends TestCase {
 		$notes  = array();
 		$clean  = $this->clean()->design( $design, $notes );
 		$this->assertSame( array(), $notes );
-		$this->assertSame( 2, $clean['version'] );
+		$this->assertArrayNotHasKey( 'version', $clean, 'A page with units says what it is.' );
 		$back = Page::in_points( $clean );
 		$this->assertEqualsWithDelta( $design['page']['safe'], $back['page']['safe'], 0.01 );
 		unset( $design['page'], $design['version'], $back['page'], $back['version'] );
@@ -145,7 +145,21 @@ final class CleanTest extends TestCase {
 	public function test_the_page_is_kept_with_units() {
 		$old   = array( 'version' => 1, 'page' => array( 'w' => 841.89, 'h' => 595.28, 'bg' => '$background', 'safe' => 28.35, 'bleed' => 0 ), 'elements' => array() ); // phpcs:ignore
 		$clean = $this->clean()->design( $old );
-		$this->assertSame( array( 'width' => '841.89px', 'height' => '595.28px', 'backgroundColor' => '$background', 'safe' => '10mm' ), $clean['page'] ); // phpcs:ignore
+		$this->assertSame( array( 'width' => '297mm', 'height' => '210mm', 'backgroundColor' => '$background', 'safe' => '10mm' ), $clean['page'] ); // phpcs:ignore
+		$this->assertArrayNotHasKey( 'version', $clean );
 		$this->assertSame( $clean['page'], $this->clean()->design( $clean )['page'] );
+		// What an earlier version wrote (a point as px) is read as it was.
+		$earlier = $this->clean()->design( array( 'page' => array( 'width' => '841.89px', 'height' => '595.28px' ), 'elements' => array() ) );
+		$this->assertSame( '297mm', $earlier['page']['width'] );
+	}
+
+	public function test_the_size_of_a_page_is_in_the_unit_that_makes_it_round() {
+		$this->assertSame( array( '297mm', '210mm' ), Page::size( 841.89, 595.28 ), 'An A4.' );
+		$this->assertSame( array( '210mm', '297mm' ), Page::size( 595.28, 841.89 ), 'An A4, upright.' );
+		$this->assertSame( array( '11in', '8.5in' ), Page::size( 792, 612 ), 'A letter.' );
+		$this->assertSame( array( '148mm', '210mm' ), Page::size( 419.53, 595.28 ), 'An A5.' );
+		$this->assertSame( array( '100mm', '100mm' ), Page::size( 283.47, 283.47 ), 'A custom one in mm.' );
+		$this->assertSame( array( '800pt', '600pt' ), Page::size( 800, 600 ), 'None of the units is round: points.' );
+		$this->assertSame( array( '812.3pt', '600pt' ), Page::size( 812.3, 600 ) );
 	}
 }

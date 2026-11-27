@@ -1,6 +1,7 @@
 <?php
 /**
- * The page of a design: kept with units (version 2: width and height in px, safe and bleed in mm, as CSS says them) and worked on in
+ * The page of a design: kept with units (width and height in the unit that makes them round — 297mm by 210mm for an A4, 11in by 8.5in for a letter —,
+ * safe and bleed in mm, as CSS says them) and worked on in
  * points (w, h, bg, safe, bleed), which is what editors and renderers use. A px is a point here.
  *
  * @package Camaleaun\Draw
@@ -78,6 +79,45 @@ final class Page {
 	}
 
 	/**
+	 * The width and height of a page, as lengths in the unit that makes both round: inches, millimeters or, when neither does, points. An
+	 * A4 is "297mm" by "210mm" (in points it would be 841.89 by 595.28), a letter "11in" by "8.5in". Of the two units that are exact (to what a
+	 * length in points is kept to) the one with the fewest decimals wins, and a tie is in; points are for a page that is round in neither.
+	 *
+	 * @param float $w Width in points.
+	 * @param float $h Height in points.
+	 * @return array{0: string, 1: string}
+	 */
+	public static function size( $w, $h ) {
+		$best = null;
+		foreach ( array( 'in', 'mm' ) as $unit ) {
+			$factor = self::UNITS[ $unit ];
+			$parts  = array();
+			$digits = 0;
+			foreach ( array( $w, $h ) as $points ) {
+				$found = null;
+				for ( $d = 0; $d <= 2; $d++ ) {
+					$value = round( $points / $factor, $d );
+					// Round when the value in this unit is the length to within what a length in points is kept to.
+					if ( abs( $value * $factor - $points ) < 0.006 ) {
+						$found = array( $d, $value );
+						break;
+					}
+				}
+				if ( null === $found ) {
+					continue 2;
+				}
+				$digits  = max( $digits, $found[0] );
+				$parts[] = rtrim( rtrim( number_format( $found[1], 2, '.', '' ), '0' ), '.' ) . $unit;
+			}
+			if ( null === $best || $digits < $best[0] ) {
+				$best = array( $digits, $parts );
+			}
+		}
+
+		return $best ? $best[1] : array( round( $w, 2 ) . 'pt', round( $h, 2 ) . 'pt' );
+	}
+
+	/**
 	 * A page in points as it is kept: lengths with their unit, and no bleed when there is none.
 	 *
 	 * @param array<string, mixed> $page Page (w, h, bg, safe, bleed).
@@ -87,9 +127,10 @@ final class Page {
 		$n   = static function ( $value ) {
 			return rtrim( rtrim( number_format( round( (float) $value, 2 ), 2, '.', '' ), '0' ), '.' );
 		};
-		$out = array(
-			'width'           => $n( $page['w'] ?? 841.89 ) . 'px',
-			'height'          => $n( $page['h'] ?? 595.28 ) . 'px',
+		$size = self::size( (float) ( $page['w'] ?? 841.89 ), (float) ( $page['h'] ?? 595.28 ) );
+		$out  = array(
+			'width'           => $size[0],
+			'height'          => $size[1],
 			'backgroundColor' => $page['bg'] ?? '$background',
 			'safe'            => $n( (float) ( $page['safe'] ?? 0 ) / self::UNITS['mm'] ) . 'mm',
 		);

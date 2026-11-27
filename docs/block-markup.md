@@ -32,3 +32,9 @@ The element types a design may have are the shapes above, `qr` and `verification
 place of the signer's signature) gives them to the cleaning, with the keys of their colors: `new Clean( array( 'types' => array( 'signature' =>
 array( 'color' ) ) ) )`; what an element has beside those keys is what every element has (`id`, `name`, `x y w h`, `layout`, `views`, `rotation`,
 `opacity`, `lock`, `slot`). And the block of the type is given in the `blocks` option of `Design` (see Options). Without `types` there are none.
+
+### The page and its size
+
+The page of a design is kept with lengths with their unit (`width`, `height`, `safe`, `bleed`) and **no version**: the unit says what it is. `width` and
+`height` are in the unit that makes both round: `Page::size()` (PHP) and `pageSize()` (TypeScript) give an A4 as `297mm` by `210mm` and a letter as
+`11in` by `8.5in`, and points only when neither unit is round. A page written before (a point as `px`, `841.89px`) is still read.
