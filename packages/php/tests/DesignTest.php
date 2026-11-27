@@ -3,6 +3,7 @@ namespace Camaleaun\Draw\Tests;
 
 use Camaleaun\Draw\Design;
 use Camaleaun\Draw\Markup;
+use Camaleaun\Draw\Names;
 use PHPUnit\Framework\TestCase;
 
 /**
