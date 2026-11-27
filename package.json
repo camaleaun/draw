@@ -1,0 +1,21 @@
+{
+	"name": "@camaleaun/draw",
+	"version": "0.1.1",
+	"description": "A drawing as blocks: reads and writes block markup (wp:draw/*), in the browser or in Node.",
+	"license": "GPL-2.0-or-later",
+	"type": "module",
+	"main": "packages/js/dist/index.js",
+	"types": "packages/js/dist/index.d.ts",
+	"files": [
+		"packages/js/dist"
+	],
+	"scripts": {
+		"build": "esbuild packages/js/src/index.ts --bundle --format=esm --outfile=packages/js/dist/index.js && tsc -p packages/js --emitDeclarationOnly --outDir packages/js/dist",
+		"test": "npm run build && node --test packages/js/tests/*.test.mjs",
+		"prepare": "npm run build"
+	},
+	"dependencies": {
+		"esbuild": "^0.25.0",
+		"typescript": "^5.6.0"
+	}
+}

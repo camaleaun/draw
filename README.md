@@ -14,7 +14,7 @@ Used by [Events Certificates](https://github.com/camaleaun/events-certificates),
 
 ```
 composer require camaleaun/draw
-npm install @camaleaun/draw
+npm install github:camaleaun/draw   # until it is published to npm
 ```
 
 (The Composer package is the repository root: its classes are in `packages/php/src`.)
