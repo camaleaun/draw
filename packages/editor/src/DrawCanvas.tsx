@@ -85,7 +85,14 @@ export function DrawCanvas( { clientId, width, height, colors = {} }: { clientId
 			removeBlocks( current.clientId );
 		}
 	};
-	const add = ( name: string, attrs: Record< string, unknown > ) => insertBlocks( createBlock( name, { x: 20, y: 20, ...attrs } ), undefined, clientId );
+	// A new shape is put in the middle of the frame (x and y), whatever its size; an SVG comes with a path, so there is something to see.
+	const add = ( name: string, attrs: Record< string, unknown > ) => {
+		const w = Number( attrs.w ) || 0;
+		const h = Number( attrs.h ) || 0;
+		const place = { x: round( ( width - w ) / 2 ), y: round( ( height - h ) / 2 ) };
+		const inner = name === 'draw/svg' ? [ createBlock( 'draw/svg-path', { d: 'M12 2 22 12 12 22 2 12Z' } ) ] : [];
+		insertBlocks( createBlock( name, { ...attrs, ...place }, inner ), undefined, clientId );
+	};
 
 	const cur = current ? boxOf( current.attributes ) : null;
 	const hs = 6 / ( scale() || 1 );

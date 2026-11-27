@@ -413,7 +413,13 @@
         removeBlocks(current.clientId);
       }
     };
-    const add = (name, attrs) => insertBlocks((0, import_blocks.createBlock)(name, { x: 20, y: 20, ...attrs }), void 0, clientId);
+    const add = (name, attrs) => {
+      const w = Number(attrs.w) || 0;
+      const h = Number(attrs.h) || 0;
+      const place = { x: round((width - w) / 2), y: round((height - h) / 2) };
+      const inner = name === "draw/svg" ? [(0, import_blocks.createBlock)("draw/svg-path", { d: "M12 2 22 12 12 22 2 12Z" })] : [];
+      insertBlocks((0, import_blocks.createBlock)(name, { ...attrs, ...place }, inner), void 0, clientId);
+    };
     const cur = current ? boxOf(current.attributes) : null;
     const hs = 6 / (scale() || 1);
     return /* @__PURE__ */ (0, import_element2.createElement)("div", { className: "draw-canvas", onKeyDown: keys, tabIndex: 0 }, /* @__PURE__ */ (0, import_element2.createElement)(import_components.ButtonGroup, { className: "draw-canvas__tools" }, SHAPES.map(([name, label, attrs]) => /* @__PURE__ */ (0, import_element2.createElement)(import_components.Button, { key: name, variant: "secondary", size: "small", onClick: () => add(name, attrs) }, label))), /* @__PURE__ */ (0, import_element2.createElement)("svg", { ref: svg, className: "draw-canvas__page", viewBox: `0 0 ${width} ${height}`, onPointerMove: move, onPointerUp: end, onPointerCancel: end, onPointerDown: () => selectBlock(clientId), style: { width: "100%", background: "#fff", touchAction: "none" } }, shapes.map((block) => /* @__PURE__ */ (0, import_element2.createElement)("g", { key: block.clientId, onPointerDown: (event) => begin(event, block, "move"), style: { cursor: "move" } }, /* @__PURE__ */ (0, import_element2.createElement)(Shape, { block, colors }))), guides.map((g, i) => g.kind === "gap" ? null : g.axis === "x" ? /* @__PURE__ */ (0, import_element2.createElement)("line", { key: i, x1: g.at, x2: g.at, y1: 0, y2: height, stroke: "#d63638", strokeWidth: 1 / (scale() || 1) }) : /* @__PURE__ */ (0, import_element2.createElement)("line", { key: i, y1: g.at, y2: g.at, x1: 0, x2: width, stroke: "#d63638", strokeWidth: 1 / (scale() || 1) })), current && cur && cur.w > 0 && /* @__PURE__ */ (0, import_element2.createElement)("g", null, /* @__PURE__ */ (0, import_element2.createElement)("rect", { x: cur.x, y: cur.y, width: cur.w, height: cur.h, fill: "none", stroke: "#3858e9", strokeWidth: 1 / (scale() || 1), pointerEvents: "none" }), HANDLES.map((handle) => {
