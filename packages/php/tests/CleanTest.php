@@ -47,6 +47,21 @@ final class CleanTest extends TestCase {
 		$this->assertEquals( $design, $back );
 	}
 
+	public function test_the_signature_is_a_place_with_only_the_color_of_the_ink() {
+		$design = array(
+			'page'     => array( 'width' => '100px', 'height' => '100px' ),
+			'elements' => array(
+				array( 'id' => 'signature', 'type' => 'signature', 'x' => 1, 'y' => 2, 'w' => 120, 'h' => 40, 'color' => '$text', 'paths' => array( array( 'd' => 'M0 0L1 1Z' ) ), 'onclick' => 'x' ),
+			),
+		);
+		$clean  = $this->clean()->design( $design );
+		$this->assertSame( 'signature', $clean['elements'][0]['type'] );
+		$this->assertSame( '$text', $clean['elements'][0]['color'] );
+		$this->assertArrayNotHasKey( 'paths', $clean['elements'][0], 'It has no drawing of its own.' );
+		$this->assertArrayNotHasKey( 'onclick', $clean['elements'][0] );
+		$this->assertSame( 120.0, (float) $clean['elements'][0]['w'] );
+	}
+
 	public function test_path_data_is_commands_and_numbers_only() {
 		foreach ( array( 'M0 0L100 0L100 40L0 40Z', 'M0 0 10 10 20 0z', 'M10 10a2 2 0 011-1.5', 'M.5.5L1e2 3.5e-1', "M0,0 L10,10\n20,20" ) as $good ) {
 			$this->assertTrue( Paths::is_data( $good ), $good );

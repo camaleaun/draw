@@ -237,7 +237,7 @@ final class Clean {
 	 */
 	public function element( $element, array &$notes = array() ) {
 		$type = is_array( $element ) ? ( $element['type'] ?? '' ) : '';
-		if ( ! in_array( $type, array( 'text', 'rect', 'ellipse', 'path', 'line', 'image', 'qr', 'svg', 'verification' ), true ) ) {
+		if ( ! in_array( $type, array( 'text', 'rect', 'ellipse', 'path', 'line', 'image', 'qr', 'signature', 'svg', 'verification' ), true ) ) {
 			return null;
 		}
 		$id = $this->clean_key( $element['id'] ?? '', 64 );
@@ -404,6 +404,10 @@ final class Clean {
 				}
 				$color( 'color' );
 				$color( 'fill' );
+				break;
+			case 'signature':
+				// The place of the signer's signature: it has no drawing of its own, only the color of the ink.
+				$color( 'color' );
 				break;
 			case 'image':
 				$src = isset( $element['src'] ) && is_string( $element['src'] ) ? trim( $element['src'] ) : '';
