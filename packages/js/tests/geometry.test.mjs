@@ -45,3 +45,25 @@ test( 'only plain paths of commands and numbers may be read', () => {
 	assert.ok( isFill( '#fff' ) && isFill( '$text' ) && ! isFill( 'url(x)' ) );
 	assert.ok( svgCodeAllowed( '<svg><path d="M0 0"/></svg>' ) && ! svgCodeAllowed( '<svg onload="x"/>' ) && ! svgCodeAllowed( '<!DOCTYPE svg>' ) );
 } );
+
+import { snap, resizeBox } from '../dist/index.js';
+
+test( 'a moving box snaps to the page and to the others, and says which guide', () => {
+	const page = { w: 800, h: 600, safe: 28 };
+	const near = snap( { x: 29.5, y: 100, w: 50, h: 20 }, page, [], 5 );
+	assert.equal( near.dx, -1.5 );
+	assert.deepEqual( near.guides[ 0 ], { axis: 'x', at: 28 } );
+	const far = snap( { x: 300, y: 250, w: 50, h: 20 }, page, [], 5 );
+	assert.deepEqual( [ far.dx, far.dy, far.guides.length ], [ 0, 0, 0 ] );
+	const withOther = snap( { x: 200, y: 203, w: 50, h: 20 }, page, [ { x: 100, y: 200, w: 50, h: 20 } ], 5 );
+	assert.equal( withOther.dy, -3 );
+} );
+
+test( 'resizing by a handle keeps the opposite side, the ratio and the centre when asked', () => {
+	const box = { x: 100, y: 100, w: 200, h: 100 };
+	assert.deepEqual( resizeBox( box, 'e', 50, 0, false ), { x: 100, y: 100, w: 250, h: 100 } );
+	assert.deepEqual( resizeBox( box, 'nw', 20, 10, false ), { x: 120, y: 110, w: 180, h: 90 } );
+	assert.deepEqual( resizeBox( box, 'se', 40, 0, true ), { x: 100, y: 100, w: 240, h: 120 } );
+	assert.deepEqual( resizeBox( box, 'e', 20, 0, false, true ), { x: 80, y: 100, w: 240, h: 100 } );
+	assert.equal( resizeBox( box, 'e', -500, 0, false ).w, 4, 'never smaller than 4' );
+} );

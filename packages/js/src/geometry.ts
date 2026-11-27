@@ -288,3 +288,162 @@ export function sanitizeSvg( code: string ): { vw: number; vh: number; w?: numbe
 	return { vw, vh, ...( shown ? { w, h } : {} ), paths };
 }
 
+
+/** A guide the canvas draws while something moves: an alignment line, or the gap of an equal spacing. */
+export type Guide =
+	| { axis: 'x' | 'y'; at: number; kind?: 'align' }
+	| { axis: 'x' | 'y'; kind: 'gap'; from: number; to: number; cross: number };
+
+/**
+ * Snaps a moving box to the page (its edges, safe margin and centre) and to the other boxes (edges, centres and equal spacing).
+ *
+ * @param moving    The box being moved.
+ * @param page      The page.
+ * @param others    The boxes it may snap to.
+ * @param threshold How near it must be, in points.
+ * @return The offset to apply and the guides to draw.
+ */
+export function snap( moving: Box, page: PageBox, others: Box[], threshold: number ): { dx: number; dy: number; guides: Guide[] } {
+	const { w, h, safe } = page;
+	const xs = [ 0, safe, w / 2, w - safe, w ];
+	const ys = [ 0, safe, h / 2, h - safe, h ];
+	for ( const b of others ) {
+		xs.push( b.x, b.x + b.w / 2, b.x + b.w );
+		ys.push( b.y, b.y + b.h / 2, b.y + b.h );
+	}
+	const best = ( targets: number[], edges: number[] ) => {
+		let found: { delta: number; at: number } | null = null;
+		for ( const edge of edges ) {
+			for ( const t of targets ) {
+				const delta = t - edge;
+				if ( Math.abs( delta ) <= threshold && ( ! found || Math.abs( delta ) < Math.abs( found.delta ) ) ) {
+					found = { delta, at: t };
+				}
+			}
+		}
+		return found;
+	};
+
+	// Equal spacing along one axis, against neighbours that overlap the moving box on the other axis: centred between the nearest one on
+	// each side, or repeating the gap between the nearest neighbour and the one past it.
+	const spacing = ( axis: 'x' | 'y' ) => {
+		const pos = axis === 'x' ? 'x' : 'y';
+		const size = axis === 'x' ? 'w' : 'h';
+		const cpos = axis === 'x' ? 'y' : 'x';
+		const csize = axis === 'x' ? 'h' : 'w';
+		const overlaps = ( b: Box ) => b[ cpos ] < moving[ cpos ] + moving[ csize ] && b[ cpos ] + b[ csize ] > moving[ cpos ];
+		const row = others.filter( overlaps );
+		const before = row.filter( ( b ) => b[ pos ] + b[ size ] <= moving[ pos ] + threshold ).sort( ( a, b ) => b[ pos ] + b[ size ] - ( a[ pos ] + a[ size ] ) );
+		const after = row.filter( ( b ) => b[ pos ] >= moving[ pos ] + moving[ size ] - threshold ).sort( ( a, b ) => a[ pos ] - b[ pos ] );
+		const cross = ( b: Box ) => ( Math.max( b[ cpos ], moving[ cpos ] ) + Math.min( b[ cpos ] + b[ csize ], moving[ cpos ] + moving[ csize ] ) ) / 2;
+		const candidates: { delta: number; gaps: Guide[] }[] = [];
+		const L = before[ 0 ];
+		const R = after[ 0 ];
+		if ( L && R ) {
+			const target = ( L[ pos ] + L[ size ] + R[ pos ] - moving[ size ] ) / 2;
+			candidates.push( {
+				delta: target - moving[ pos ],
+				gaps: [
+					{ axis, kind: 'gap', from: L[ pos ] + L[ size ], to: target, cross: cross( L ) },
+					{ axis, kind: 'gap', from: target + moving[ size ], to: R[ pos ], cross: cross( R ) },
+				],
+			} );
+		}
+		if ( L && before[ 1 ] ) {
+			const gap = L[ pos ] - ( before[ 1 ][ pos ] + before[ 1 ][ size ] );
+			const target = L[ pos ] + L[ size ] + gap;
+			candidates.push( {
+				delta: target - moving[ pos ],
+				gaps: [
+					{ axis, kind: 'gap', from: before[ 1 ][ pos ] + before[ 1 ][ size ], to: L[ pos ], cross: cross( before[ 1 ] ) },
+					{ axis, kind: 'gap', from: L[ pos ] + L[ size ], to: target, cross: cross( L ) },
+				],
+			} );
+		}
+		if ( R && after[ 1 ] ) {
+			const gap = after[ 1 ][ pos ] - ( R[ pos ] + R[ size ] );
+			const target = R[ pos ] - gap - moving[ size ];
+			candidates.push( {
+				delta: target - moving[ pos ],
+				gaps: [
+					{ axis, kind: 'gap', from: target + moving[ size ], to: R[ pos ], cross: cross( R ) },
+					{ axis, kind: 'gap', from: R[ pos ] + R[ size ], to: after[ 1 ][ pos ], cross: cross( after[ 1 ] ) },
+				],
+			} );
+		}
+		return candidates.filter( ( c ) => Math.abs( c.delta ) <= threshold && c.gaps.every( ( g ) => 'to' in g && g.to - g.from >= 2 ) ).sort( ( a, b ) => Math.abs( a.delta ) - Math.abs( b.delta ) )[ 0 ] || null;
+	};
+
+	const fx = best( xs, [ moving.x, moving.x + moving.w / 2, moving.x + moving.w ] );
+	const fy = best( ys, [ moving.y, moving.y + moving.h / 2, moving.y + moving.h ] );
+	const sx = spacing( 'x' );
+	const sy = spacing( 'y' );
+	const guides: Guide[] = [];
+	let dx = 0;
+	let dy = 0;
+	if ( sx && ( ! fx || Math.abs( sx.delta ) <= Math.abs( fx.delta ) ) ) {
+		dx = sx.delta;
+		guides.push( ...sx.gaps );
+	} else if ( fx ) {
+		dx = fx.delta;
+		guides.push( { axis: 'x', at: fx.at } );
+	}
+	if ( sy && ( ! fy || Math.abs( sy.delta ) <= Math.abs( fy.delta ) ) ) {
+		dy = sy.delta;
+		guides.push( ...sy.gaps );
+	} else if ( fy ) {
+		dy = fy.delta;
+		guides.push( { axis: 'y', at: fy.at } );
+	}
+	return { dx, dy, guides };
+}
+
+/**
+ * A box resized by a handle (n, ne, e, se, s, sw, w, nw), like vector apps: `keepRatio` (Shift) keeps the proportions and `fromCenter`
+ * (Alt/Option) resizes from the centre, the opposite side moving too. Never smaller than 4 points.
+ */
+export function resizeBox( origin: Box, handle: string, dx: number, dy: number, keepRatio: boolean, fromCenter = false ): Box {
+	const k = fromCenter ? 2 : 1;
+	let { x, y, w, h } = origin;
+	if ( handle.includes( 'e' ) ) {
+		w = Math.max( 4, w + dx * k );
+	}
+	if ( handle.includes( 's' ) ) {
+		h = Math.max( 4, h + dy * k );
+	}
+	if ( handle.includes( 'w' ) ) {
+		const nw = Math.max( 4, w - dx * k );
+		x += w - nw;
+		w = nw;
+	}
+	if ( handle.includes( 'n' ) ) {
+		const nh = Math.max( 4, h - dy * k );
+		y += h - nh;
+		h = nh;
+	}
+	if ( keepRatio && origin.w && origin.h ) {
+		const ratio = origin.w / origin.h;
+		if ( handle === 'n' || handle === 's' ) {
+			w = h * ratio;
+		} else {
+			h = w / ratio;
+		}
+		// The side opposite the handle stays put (or the centre, below).
+		if ( handle.includes( 'n' ) ) {
+			y = origin.y + origin.h - h;
+		}
+		if ( handle.includes( 'w' ) ) {
+			x = origin.x + origin.w - w;
+		}
+		if ( handle === 'n' || handle === 's' ) {
+			x = origin.x + ( origin.w - w ) / 2;
+		} else if ( handle === 'e' || handle === 'w' ) {
+			y = origin.y + ( origin.h - h ) / 2;
+		}
+	}
+	if ( fromCenter ) {
+		x = origin.x + ( origin.w - w ) / 2;
+		y = origin.y + ( origin.h - h ) / 2;
+	}
+	return { x, y, w, h };
+}
