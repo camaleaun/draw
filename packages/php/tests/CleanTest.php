@@ -187,4 +187,15 @@ final class CleanTest extends TestCase {
 		$this->assertSame( '', $clean['colors']['none']['light'] );
 		$this->assertSame( '#112233', $clean['colors']['ok']['light'] );
 	}
+
+	public function test_a_color_may_point_at_another() {
+		$design = array(
+			'page'     => array( 'width' => '100mm', 'height' => '100mm' ),
+			'colors'   => array( 'fundo' => array( 'name' => 'Fundo', 'light' => '$branco', 'dark' => '$preto' ) ),
+			'elements' => array(),
+		);
+		$clean  = $this->clean()->design( $design );
+		$this->assertSame( '$branco', $clean['colors']['fundo']['light'] );
+		$this->assertSame( '$preto', $clean['colors']['fundo']['dark'] );
+	}
 }

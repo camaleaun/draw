@@ -533,17 +533,18 @@ final class Clean {
 
 		$out['colors'] = array();
 		foreach ( array_slice( is_array( $design['colors'] ?? null ) ? $design['colors'] : array(), 0, self::MAX_COLORS, true ) as $key => $value ) {
-			// A color may have no Light value ("none": Clear); one with a value that is not a color is dropped.
+			// A color may have no Light value ("none": Clear); one with a value that is not a color is dropped. A value may point at another color
+			// ("$base": the Theme's), which is how a color picked from the Theme is kept.
 			$light = is_array( $value ) ? (string) ( $value['light'] ?? '' ) : '';
-			if ( '' === $this->clean_key( (string) $key, 40 ) || ! is_array( $value ) || ( '' !== trim( $light ) && '' === $this->clean_color( $light, false ) ) ) {
+			if ( '' === $this->clean_key( (string) $key, 40 ) || ! is_array( $value ) || ( '' !== trim( $light ) && '' === $this->clean_color( $light ) ) ) {
 				continue;
 			}
 			$item = array(
 				'name'  => $this->clean_text( $value['name'] ?? '', 80 ),
-				'light' => $this->clean_color( $light, false ),
+				'light' => $this->clean_color( $light ),
 			);
-			if ( '' !== $this->clean_color( $value['dark'] ?? '', false ) ) {
-				$item['dark'] = $this->clean_color( $value['dark'], false );
+			if ( '' !== $this->clean_color( $value['dark'] ?? '' ) ) {
+				$item['dark'] = $this->clean_color( $value['dark'] );
 			}
 			$out['colors'][ (string) $key ] = $item;
 		}
