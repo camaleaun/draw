@@ -19,3 +19,23 @@ npm install github:camaleaun/draw   # until it is published to npm
 ```
 
 (The Composer package is the repository root: its classes are in `packages/php/src`.)
+
+## Use
+
+```php
+use Camaleaun\Draw\Design;
+use Camaleaun\Draw\Clean;
+use Camaleaun\Draw\Svg;
+
+$design = Design::from_markup( $markup );                       // blocks → the array a renderer works on
+$clean  = ( new Clean( array( 'upload_url' => $is_ours ) ) )->design( $design ); // only what a drawing may have
+$markup = Design::to_markup( $clean );                          // back to blocks
+$svg    = Svg::render( $clean['elements'], 600, 400 );          // one SVG
+```
+
+```ts
+import { fromMarkup, toMarkup, parseLen, resizeBox, snap } from '@camaleaun/draw';
+```
+
+See [the block markup](docs/block-markup.md) and the [decisions](docs/decisions/).
+
