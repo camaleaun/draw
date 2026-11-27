@@ -1,0 +1,15 @@
+{
+	"compilerOptions": {
+		"target": "ES2020",
+		"module": "ESNext",
+		"moduleResolution": "Bundler",
+		"jsx": "react",
+		"jsxFactory": "createElement",
+		"strict": true,
+		"skipLibCheck": true,
+		"noEmit": true,
+		"baseUrl": ".",
+		"paths": { "@camaleaun/draw": [ "../js/src/index.ts" ] }
+	},
+	"include": [ "src" ]
+}

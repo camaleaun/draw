@@ -176,6 +176,6 @@ add_action(
 				},
 			)
 		);
-		wp_register_script( 'draw-editor', plugins_url( 'assets/editor.js', dirname( __DIR__ ) . '/draw.php' ), array( 'wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-i18n' ), '0.1.0', true );
+		wp_register_script( 'draw-editor', plugins_url( 'assets/editor.js', dirname( __DIR__ ) . '/draw.php' ), array( 'wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-i18n', 'wp-data' ), '0.1.0', true );
 	}
 );

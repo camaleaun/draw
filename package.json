@@ -12,10 +12,15 @@
 	"scripts": {
 		"build": "esbuild packages/js/src/index.ts --bundle --format=esm --outfile=packages/js/dist/index.js && tsc -p packages/js --emitDeclarationOnly --outDir packages/js/dist",
 		"test": "npm run build && node --test packages/js/tests/*.test.mjs",
-		"prepare": "npm run build"
+		"prepare": "npm run build",
+		"build:plugin": "node plugins/draw/build.mjs",
+		"check:editor": "tsc -p packages/editor && tsc -p plugins/draw --noEmit"
 	},
 	"dependencies": {
 		"esbuild": "^0.25.0",
 		"typescript": "^5.6.0"
+	},
+	"devDependencies": {
+		"@types/react": "^18.3.32"
 	}
 }
