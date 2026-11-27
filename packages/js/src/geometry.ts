@@ -19,7 +19,7 @@ export type AxisMode = 'start' | 'center' | 'end' | 'stretch';
 export type Axis = { mode: AxisMode; start?: string; end?: string; size?: string };
 export type Layout = { h: Axis; v: Axis; ref?: 'page' | 'safe' };
 
-const UNITS: Record< string, number > = { pt: 1, px: 1, mm: 2.83465, cm: 28.3465, in: 72 };
+export const UNITS: Record< string, number > = { pt: 1, px: 1, mm: 2.83465, cm: 28.3465, in: 72 };
 
 /** A length in pt: "20pt", "10mm", "5%", "calc(100% - 40pt)" (terms joined by + or -), or a bare number (pt). */
 export function parseLen( value: string | number | undefined, total: number ): number {
