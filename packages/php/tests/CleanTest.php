@@ -47,19 +47,23 @@ final class CleanTest extends TestCase {
 		$this->assertEquals( $design, $back );
 	}
 
-	public function test_the_signature_is_a_place_with_only_the_color_of_the_ink() {
+	public function test_a_type_the_host_adds_has_only_the_colors_it_names() {
 		$design = array(
 			'page'     => array( 'width' => '100px', 'height' => '100px' ),
 			'elements' => array(
-				array( 'id' => 'signature', 'type' => 'signature', 'x' => 1, 'y' => 2, 'w' => 120, 'h' => 40, 'color' => '$text', 'paths' => array( array( 'd' => 'M0 0L1 1Z' ) ), 'onclick' => 'x' ),
+				array( 'id' => 'signature', 'type' => 'signature', 'x' => 1, 'y' => 2, 'w' => 120, 'h' => 40, 'color' => '$text', 'fill' => '#fff', 'paths' => array( array( 'd' => 'M0 0L1 1Z' ) ), 'onclick' => 'x' ),
 			),
 		);
-		$clean  = $this->clean()->design( $design );
+		// By default there is no such type.
+		$this->assertSame( array(), $this->clean()->design( $design )['elements'] );
+		$host  = new Clean( array( 'types' => array( 'signature' => array( 'color' ) ) ) );
+		$clean = $host->design( $design );
 		$this->assertSame( 'signature', $clean['elements'][0]['type'] );
 		$this->assertSame( '$text', $clean['elements'][0]['color'] );
-		$this->assertArrayNotHasKey( 'paths', $clean['elements'][0], 'It has no drawing of its own.' );
-		$this->assertArrayNotHasKey( 'onclick', $clean['elements'][0] );
 		$this->assertSame( 120.0, (float) $clean['elements'][0]['w'] );
+		foreach ( array( 'fill', 'paths', 'onclick' ) as $key ) {
+			$this->assertArrayNotHasKey( $key, $clean['elements'][0], $key );
+		}
 	}
 
 	public function test_path_data_is_commands_and_numbers_only() {

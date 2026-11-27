@@ -26,13 +26,15 @@ final class Clean {
 	/**
 	 * What the host decides.
 	 *
-	 * @var array<string, callable>
+	 * @var array<string, mixed>
 	 */
 	private $env;
 
 	/**
-	 * @param array<string, callable> $env upload_url, font_name, attachment_is_image (each optional: the default allows no picture, keeps
-	 *                                     a font name of letters, digits, spaces and dashes, and knows no attachment).
+	 * @param array<string, mixed> $env upload_url, font_name, attachment_is_image (callables, each optional: the default allows no picture,
+	 *                                  keeps a font name of letters, digits, spaces and dashes, and knows no attachment) and types (an
+	 *                                  array of the element types the host adds, each with the keys of its colors: `array( 'signature' =>
+	 *                                  array( 'color' ) )`; by default there are none).
 	 */
 	public function __construct( array $env = array() ) {
 		$this->env = $env + array(
@@ -237,7 +239,7 @@ final class Clean {
 	 */
 	public function element( $element, array &$notes = array() ) {
 		$type = is_array( $element ) ? ( $element['type'] ?? '' ) : '';
-		if ( ! in_array( $type, array( 'text', 'rect', 'ellipse', 'path', 'line', 'image', 'qr', 'signature', 'svg', 'verification' ), true ) ) {
+		if ( ! in_array( $type, array( 'text', 'rect', 'ellipse', 'path', 'line', 'image', 'qr', 'svg', 'verification' ), true ) && ! isset( $this->env['types'][ $type ] ) ) {
 			return null;
 		}
 		$id = $this->clean_key( $element['id'] ?? '', 64 );
@@ -321,6 +323,10 @@ final class Clean {
 			}
 		};
 
+		// A type the host added (`types`): the element has only the colors it names, and what every element has.
+		foreach ( (array) ( $this->env['types'][ $type ] ?? array() ) as $key ) {
+			$color( $key );
+		}
 		switch ( $type ) {
 			case 'text':
 				if ( isset( $element['text'] ) && is_string( $element['text'] ) ) {
@@ -404,10 +410,6 @@ final class Clean {
 				}
 				$color( 'color' );
 				$color( 'fill' );
-				break;
-			case 'signature':
-				// The place of the signer's signature: it has no drawing of its own, only the color of the ink.
-				$color( 'color' );
 				break;
 			case 'image':
 				$src = isset( $element['src'] ) && is_string( $element['src'] ) ? trim( $element['src'] ) : '';

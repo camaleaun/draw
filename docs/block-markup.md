@@ -25,3 +25,10 @@ The default above is the native way of the blocks. A second argument to `Design:
 | `paths` | `inner`: one `draw/svg-path` inner block for each path; `attribute`: the SVG is **one block** with its paths in the attribute, `{"paths":[{"d":"…"},{"d":"…"}]}`, and no inner blocks | `inner` |
 
 Events Certificates uses `events-certificates/certificate-*` for every shape and `paths: attribute`; the Draw plugin keeps the defaults.
+
+### Element types of the host
+
+The element types a design may have are the shapes above, `qr` and `verification`. A host that has more (Events Certificates has `signature`, the
+place of the signer's signature) gives them to the cleaning, with the keys of their colors: `new Clean( array( 'types' => array( 'signature' =>
+array( 'color' ) ) ) )`; what an element has beside those keys is what every element has (`id`, `name`, `x y w h`, `layout`, `views`, `rotation`,
+`opacity`, `lock`, `slot`). And the block of the type is given in the `blocks` option of `Design` (see Options). Without `types` there are none.

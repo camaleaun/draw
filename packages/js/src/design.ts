@@ -26,7 +26,6 @@ export const BLOCKS: Record< string, string > = {
 	image: 'draw/image',
 	svg: 'draw/svg',
 	qr: 'events-certificates/certificate-qr',
-	signature: 'events-certificates/certificate-signature',
 	verification: 'events-certificates/certificate-verification',
 };
 
