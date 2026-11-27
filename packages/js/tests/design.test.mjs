@@ -3,9 +3,11 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { toMarkup, fromMarkup, isMarkup, parse } from '../dist/index.js';
+import { toMarkup, fromMarkup, isMarkup, parse, defaultName } from '../dist/index.js';
 
 const golden = path.join( path.dirname( fileURLToPath( import.meta.url ) ), '..', '..', '..', 'tests', 'golden' );
+// The default name of a type is not written in a file, so it is not read back.
+const unnamed = ( design ) => ( { ...design, elements: ( design.elements || [] ).map( ( el ) => { const { name, ...rest } = el; return name === defaultName( el ) ? rest : el; } ), ...( design.back ? { back: unnamed( design.back ) } : {} ) } );
 const canon = ( value ) => Array.isArray( value ) ? value.map( canon ) : value && typeof value === 'object' ? Object.fromEntries( Object.keys( value ).sort().map( ( key ) => [ key, canon( value[ key ] ) ] ) ) : value;
 
 for ( const file of readdirSync( golden ).filter( ( name ) => name.endsWith( '.json' ) ) ) {
@@ -13,7 +15,7 @@ for ( const file of readdirSync( golden ).filter( ( name ) => name.endsWith( '.j
 		const design = JSON.parse( readFileSync( path.join( golden, file ), 'utf8' ) );
 		const markup = toMarkup( design );
 		assert.ok( isMarkup( markup ) );
-		assert.deepEqual( canon( fromMarkup( markup ) ), canon( design ) );
+		assert.deepEqual( canon( fromMarkup( markup ) ), canon( unnamed( design ) ) );
 	} );
 }
 
@@ -97,5 +99,15 @@ test( 'an element is written with the names of a block, and read back with the m
 	assert.deepEqual( back.elements.map( ( e ) => e.id ), [ 'rect-1', 'svg-2', 'title', 'line-4' ], 'made again by position' );
 	const strip = ( e ) => { const { id, ...rest } = e; return rest; };
 	assert.deepEqual( back.elements.map( strip ), design.elements.map( strip ) );
+} );
+
+test( 'the default name of an element is not written, the name a host adds either', () => {
+	const design = { page: { width: '100mm', height: '50mm' }, elements: [ { type: 'rect', name: 'Rectangle' }, { type: 'rect', name: 'Band' }, { type: 'svg', name: 'SVG' }, { type: 'image', slot: 'logo', name: 'Community logo' }, { type: 'signature', name: 'Signature' } ] };
+	const without = toMarkup( design );
+	assert.equal( without.includes( '"name":"Rectangle"' ) || without.includes( '"name":"SVG"' ), false );
+	assert.ok( without.includes( '"name":"Band"' ) && without.includes( '"name":"Community logo"' ) && without.includes( '"name":"Signature"' ) );
+	const withHost = toMarkup( design, { names: { signature: 'Signature', 'image:logo': 'Community logo' } } );
+	assert.equal( withHost.includes( '"name":"Community logo"' ) || withHost.includes( '"name":"Signature"' ), false );
+	assert.ok( withHost.includes( '"name":"Band"' ) );
 } );
 

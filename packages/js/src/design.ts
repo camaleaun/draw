@@ -31,13 +31,14 @@ export const BLOCKS: Record< string, string > = {
 	verification: 'events-certificates/certificate-verification',
 };
 
-export type Options = { blocks?: Record< string, string >; fallback?: string; paths?: 'inner' | 'attribute' };
-type Resolved = { blocks: Record< string, string >; fallback: string; paths: 'inner' | 'attribute' };
+export type Options = { blocks?: Record< string, string >; fallback?: string; paths?: 'inner' | 'attribute'; names?: Record< string, string > };
+type Resolved = { blocks: Record< string, string >; fallback: string; paths: 'inner' | 'attribute'; names: Record< string, string > };
 
 const resolve = ( options: Options = {} ): Resolved => ( {
 	blocks: { ...BLOCKS, ...( options.blocks || {} ) },
 	fallback: options.fallback || FALLBACK,
 	paths: options.paths === 'attribute' ? 'attribute' : 'inner',
+	names: options.names || {},
 } );
 
 const isObject = ( value: unknown ): value is Attrs => !! value && typeof value === 'object' && ! Array.isArray( value );
@@ -48,7 +49,7 @@ function blocks( elements: unknown, o: Resolved ): Block[] {
 		if ( ! isObject( element ) ) {
 			continue;
 		}
-		const { type, ...attrs } = toAttrs( element );
+		const { type, ...attrs } = toAttrs( element, o.names );
 		const kind = String( element.type ?? '' );
 		let children: Block[] = [];
 		if ( kind === 'svg' && o.paths === 'inner' && Array.isArray( element.paths ) ) {

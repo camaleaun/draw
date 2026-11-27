@@ -39,6 +39,20 @@ final class DesignTest extends TestCase {
 		$design = json_decode( file_get_contents( $file ), true );
 		$markup = Design::to_markup( $design );
 		$this->assertTrue( Design::is_markup( $markup ) );
+		// The default name of a type is not written in a file, so it is not read back.
+		$unnamed = static function ( $sheet ) {
+			foreach ( $sheet['elements'] ?? array() as $i => $element ) {
+				if ( isset( $element['name'] ) && Names::default_name( $element ) === $element['name'] ) {
+					unset( $sheet['elements'][ $i ]['name'] );
+				}
+			}
+
+			return $sheet;
+		};
+		$design  = $unnamed( $design );
+		if ( isset( $design['back'] ) ) {
+			$design['back'] = $unnamed( $design['back'] );
+		}
 		$this->assertSame( json_encode( $this->canon( $design ) ), json_encode( $this->canon( Design::from_markup( $markup ) ) ) );
 	}
 
@@ -152,5 +166,32 @@ final class DesignTest extends TestCase {
 		unset( $back['elements'][0]['id'], $back['elements'][1]['id'], $back['elements'][3]['id'] );
 		unset( $design['elements'][0]['id'], $design['elements'][1]['id'] );
 		$this->assertEquals( $design['elements'], $back['elements'] );
+	}
+
+	public function test_the_default_name_of_an_element_is_not_written() {
+		$design = array(
+			'page'     => array( 'width' => '100mm', 'height' => '50mm' ),
+			'elements' => array(
+				array( 'type' => 'rect', 'name' => 'Rectangle', 'w' => 1, 'h' => 2 ),
+				array( 'type' => 'rect', 'name' => 'Band', 'w' => 1, 'h' => 2 ),
+				array( 'type' => 'svg', 'name' => 'SVG' ),
+				array( 'type' => 'image', 'slot' => 'logo', 'name' => 'Community logo' ),
+				array( 'type' => 'image', 'name' => 'Image' ),
+				array( 'type' => 'signature', 'name' => 'Signature' ),
+			),
+		);
+		$names  = array( 'signature' => 'Signature', 'image:logo' => 'Community logo' );
+
+		$without = Design::to_markup( $design );
+		$this->assertStringNotContainsString( '"name":"Rectangle"', $without );
+		$this->assertStringContainsString( '"name":"Band"', $without );
+		$this->assertStringNotContainsString( '"name":"SVG"', $without );
+		$this->assertStringContainsString( '"name":"Community logo"', $without, 'A host name that the package does not know is written.' );
+		$this->assertStringContainsString( '"name":"Signature"', $without );
+
+		$with = Design::to_markup( $design, array( 'names' => $names ) );
+		$this->assertStringNotContainsString( '"name":"Community logo"', $with );
+		$this->assertStringNotContainsString( '"name":"Signature"', $with );
+		$this->assertStringContainsString( '"name":"Band"', $with );
 	}
 }

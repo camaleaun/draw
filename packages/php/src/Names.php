@@ -21,6 +21,21 @@ class Names {
 	 */
 	const GENERATED_ID = '/^[a-z]+-(?:[a-z0-9]{6,9}-)?\d+$/';
 
+	/**
+	 * The name an element has when it is made, by type: it is not written, as the type already says it. A host adds its own (`names` option of `Design`),
+	 * by type or by `type:slot` (`image:logo`).
+	 */
+	const DEFAULT_NAMES = array(
+		'text'         => 'Text',
+		'rect'         => 'Rectangle',
+		'ellipse'      => 'Ellipse',
+		'line'         => 'Line',
+		'image'        => 'Image',
+		'svg'          => 'SVG',
+		'qr'           => 'Authenticity',
+		'verification' => 'Verification',
+	);
+
 	const TEXT = array(
 		'lh' => 'lineHeight',
 		'ls' => 'letterSpacing',
@@ -86,13 +101,18 @@ class Names {
 	/**
 	 * An element as the attributes of its block.
 	 *
-	 * @param array<string, mixed> $element Element (as the model says it).
+	 * @param array<string, mixed>  $element Element (as the model says it).
+	 * @param array<string, string> $names   The default names a host adds (by type or `type:slot`).
 	 * @return array<string, mixed>
 	 */
-	public static function to_attrs( array $element ) {
+	public static function to_attrs( array $element, array $names = array() ) {
+		$default = self::default_name( $element, $names );
 		$element = self::names( $element, true );
 		$out     = array();
 		foreach ( $element as $key => $value ) {
+			if ( 'name' === $key && '' !== $default && $default === $value ) {
+				continue;
+			}
 			if ( 'id' === $key && is_string( $value ) && 1 === preg_match( self::GENERATED_ID, $value ) ) {
 				continue;
 			}
@@ -108,6 +128,21 @@ class Names {
 		}
 
 		return $out;
+	}
+
+	/**
+	 * The name an element has when it is made: the host's for its type and slot, else the type's.
+	 *
+	 * @param array<string, mixed>  $element Element.
+	 * @param array<string, string> $names   The host's default names.
+	 * @return string
+	 */
+	public static function default_name( array $element, array $names = array() ) {
+		$type  = (string) ( $element['type'] ?? '' );
+		$slot  = (string) ( $element['slot'] ?? '' );
+		$names = array_merge( self::DEFAULT_NAMES, $names );
+
+		return (string) ( $names[ $type . ':' . $slot ] ?? $names[ $type ] ?? '' );
 	}
 
 	/**

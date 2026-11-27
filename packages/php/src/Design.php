@@ -10,6 +10,7 @@
  *   - `blocks`:   the block of a type, over the defaults (`array( 'svg' => 'events-certificates/certificate-svg' )`);
  *   - `fallback`: the block that keeps the elements of a type this version does not know (`draw/element` by default);
  *   - `paths`:    `inner` (default: one `draw/svg-path` inner block for each path) or `attribute` (the SVG is one block with the
+ *   - `names`:    the default names a host adds (by type or `type:slot`), not written in a file (`array( 'signature' => 'Signature' )`);
  *                 `paths` attribute, `{"paths":[{"d":"…"},{"d":"…"}]}`, and no inner blocks).
  *
  * @package Camaleaun\Draw
@@ -50,13 +51,14 @@ final class Design {
 	 * The options with their defaults.
 	 *
 	 * @param array<string, mixed> $options Options (see the class).
-	 * @return array{blocks: array<string, string>, fallback: string, paths: string}
+	 * @return array{blocks: array<string, string>, fallback: string, paths: string, names: array<string, string>}
 	 */
 	private static function options( array $options ) {
 		return array(
 			'blocks'   => array_merge( self::BLOCKS, is_array( $options['blocks'] ?? null ) ? $options['blocks'] : array() ),
 			'fallback' => is_string( $options['fallback'] ?? null ) ? $options['fallback'] : self::FALLBACK,
 			'paths'    => 'attribute' === ( $options['paths'] ?? '' ) ? 'attribute' : 'inner',
+			'names'    => is_array( $options['names'] ?? null ) ? $options['names'] : array(),
 		);
 	}
 
@@ -147,7 +149,7 @@ final class Design {
 				continue;
 			}
 			$type  = (string) ( $element['type'] ?? '' );
-			$attrs = Names::to_attrs( $element );
+			$attrs = Names::to_attrs( $element, $options['names'] );
 			unset( $attrs['type'] );
 			$children = array();
 			if ( 'svg' === $type && 'inner' === $options['paths'] && is_array( $element['paths'] ?? null ) ) {

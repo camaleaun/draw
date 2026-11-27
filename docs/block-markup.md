@@ -39,7 +39,8 @@ An element is written with the names a block says, never abbreviated: `width` an
 `lineHeight` and `letterSpacing` (`lh` and `ls`, also in the hint and the code of a verification), `horizontal` and `vertical` in a `layout` (`h` and `v`),
 and `bold` and `italic` in a run of a text (`b` and `i`). `x` and `y` and the coordinates of a line (`x1 y1 x2 y2`) stay. An `id` that only counts the
 elements (`rect-2`, or the editor's `svg-mwzbwe9c-1`) is not written: it is made again by position (`<type>-<position>`) when the markup is read; an id
-that means something (`title`, `logo`) stays. `Names::to_attrs()` / `Names::from_attrs()` (PHP) and `toAttrs()` / `fromAttrs()` (TypeScript) do it, inside
+that means something (`title`, `logo`) stays. The name an element has when it is made (`Text`, `Rectangle`, `SVG`…) is not written either: `Names::DEFAULT_NAMES`, and the host's own
+types in the `names` option (`array( 'signature' => 'Signature', 'image:logo' => 'Community logo' )`). `Names::to_attrs()` / `Names::from_attrs()` (PHP) and `toAttrs()` / `fromAttrs()` (TypeScript) do it, inside
 `Design`; the model in memory, the cleaning and the drawing keep the short names. The shapes of the Draw plugin (`draw/rect`…) have the same attributes
 (`width`, `height`, `viewBox`).
 

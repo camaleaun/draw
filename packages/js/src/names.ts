@@ -39,11 +39,27 @@ function names( element: Attrs, full: boolean ): Attrs {
 	return out;
 }
 
+/**
+ * The name an element has when it is made, by type: it is not written, as the type already says it. A host adds its own (`names` option of `Design`),
+ * by type or by `type:slot` (`image:logo`).
+ */
+export const DEFAULT_NAMES: Record< string, string > = { text: 'Text', rect: 'Rectangle', ellipse: 'Ellipse', line: 'Line', image: 'Image', svg: 'SVG', qr: 'Authenticity', verification: 'Verification' };
+
+/** The name an element has when it is made: the host's for its type and slot, else the type's. */
+export function defaultName( element: Attrs, hostNames: Record< string, string > = {} ): string {
+	const all = { ...DEFAULT_NAMES, ...hostNames };
+	return all[ `${ String( element.type ?? '' ) }:${ String( element.slot ?? '' ) }` ] ?? all[ String( element.type ?? '' ) ] ?? '';
+}
+
 /** An element as the attributes of its block. */
-export function toAttrs( element: Attrs ): Attrs {
+export function toAttrs( element: Attrs, hostNames: Record< string, string > = {} ): Attrs {
+	const fallback = defaultName( element, hostNames );
 	const el = names( element, true );
 	const out: Attrs = {};
 	for ( const [ key, value ] of Object.entries( el ) ) {
+		if ( key === 'name' && fallback !== '' && value === fallback ) {
+			continue;
+		}
 		if ( key === 'id' && typeof value === 'string' && GENERATED_ID.test( value ) ) {
 			continue;
 		}
