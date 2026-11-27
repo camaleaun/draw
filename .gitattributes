@@ -1,5 +1,6 @@
 # What a Composer dist of this repository leaves out: only the PHP package (packages/php/src) is the library.
-/packages/js export-ignore
+/packages/js/tests export-ignore
+/packages/js/dist export-ignore
 /plugins export-ignore
 /tests export-ignore
 /packages/php/tests export-ignore
