@@ -235,7 +235,7 @@ final class Clean {
 	 * @param array<string, mixed> $notes   What was removed, counted by kind (filled).
 	 * @return array<string, mixed>|null
 	 */
-	private function clean_element( $element, array &$notes ) {
+	public function element( $element, array &$notes = array() ) {
 		$type = is_array( $element ) ? ( $element['type'] ?? '' ) : '';
 		if ( ! in_array( $type, array( 'text', 'rect', 'ellipse', 'path', 'line', 'image', 'qr', 'svg', 'verification' ), true ) ) {
 			return null;
@@ -476,7 +476,7 @@ final class Clean {
 	private function clean_elements( $elements, array &$notes ) {
 		$out = array();
 		foreach ( array_slice( is_array( $elements ) ? array_values( $elements ) : array(), 0, self::MAX_ELEMENTS ) as $element ) {
-			$clean = $this->clean_element( $element, $notes );
+			$clean = $this->element( $element, $notes );
 			if ( null === $clean ) {
 				$notes['elements'] = ( $notes['elements'] ?? 0 ) + 1;
 				continue;

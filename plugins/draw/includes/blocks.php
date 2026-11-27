@@ -1,7 +1,9 @@
 <?php
 /**
- * The blocks: draw/frame holds the drawing, and its inner blocks are the shapes. The frame draws all of them as one SVG; a shape on
- * its own has nothing to show.
+ * The blocks, all rendered on the server. `draw/frame` is the drawing: the SVG around its shapes, which it asks to draw themselves.
+ * Each shape (`draw/rect`, `draw/ellipse`…) is a block that can only be inside a frame, and draws its own piece of SVG from its
+ * attributes; `draw/svg` draws a nested SVG around its `draw/svg-path` blocks. What each block says is cleaned like a design is,
+ * so no attribute can become code.
  *
  * @package Draw
  */
@@ -10,12 +12,13 @@ namespace Camaleaun\DrawPlugin;
 
 use Camaleaun\Draw\Clean;
 use Camaleaun\Draw\Page;
+use Camaleaun\Draw\Paths;
 use Camaleaun\Draw\Svg;
 
 defined( 'ABSPATH' ) || exit;
 
 /**
- * The shapes a frame may hold, with the type each is in the package's model.
+ * The shapes a frame holds, with the type each is in the package's model.
  */
 const SHAPES = array(
 	'draw/rect'    => 'rect',
@@ -28,82 +31,100 @@ const SHAPES = array(
 );
 
 /**
- * A block as an element of the package's model: its attributes, with the type, and an SVG's paths from its inner blocks.
+ * The cleaning of what WordPress decides: which addresses are files of the Media Library and which numbers are pictures.
  *
- * @param array<string, mixed> $block A parsed block.
- * @return array<string, mixed>|null Null when it is not a shape.
+ * @return Clean
  */
-function element( array $block ) {
-	$type = SHAPES[ $block['blockName'] ?? '' ] ?? '';
-	if ( '' === $type ) {
-		return null;
-	}
-	$element = array( 'type' => $type ) + (array) ( $block['attrs'] ?? array() );
-	if ( 'svg' === $type ) {
-		$element['paths'] = array();
-		foreach ( (array) ( $block['innerBlocks'] ?? array() ) as $inner ) {
-			if ( 'draw/svg-path' === ( $inner['blockName'] ?? '' ) ) {
-				$element['paths'][] = (array) ( $inner['attrs'] ?? array() );
-			}
-		}
-	}
-
-	return $element;
-}
-
-/**
- * The frame: the drawing as one SVG. The shapes are cleaned like a design is, so what the blocks say cannot become code.
- *
- * @param array<string, mixed> $attributes The block's attributes.
- * @param string               $content    Inner content (not used: the frame draws its shapes itself).
- * @param \WP_Block            $block      The block.
- * @return string
- */
-function render_frame( $attributes, $content, $block ) {
-	$elements = array();
-	foreach ( (array) ( $block->parsed_block['innerBlocks'] ?? array() ) as $inner ) {
-		$element = element( $inner );
-		if ( $element ) {
-			$elements[] = $element;
-		}
-	}
-	$width  = Page::length( $attributes['width'] ?? '600px' );
-	$height = Page::length( $attributes['height'] ?? '400px' );
-	$clean  = ( new Clean(
+function cleaner() {
+	return new Clean(
 		array(
 			'upload_url'          => static function ( $url ) {
-				return 0 === strpos( preg_replace( '#^https?:#', '', $url ), preg_replace( '#^https?:#', '', wp_get_upload_dir()['baseurl'] ) . '/' ) && ! preg_match( '#\.(php|phtml|phar|svg|html?|js)(\?|$)#i', $url );
+				$base = preg_replace( '#^https?:#', '', wp_get_upload_dir()['baseurl'] );
+
+				return 0 === strpos( preg_replace( '#^https?:#', '', $url ), $base . '/' ) && ! preg_match( '#\.(php|phtml|phar|svg|html?|js)(\?|$)#i', $url );
 			},
 			'attachment_is_image' => static function ( $id ) {
 				return (bool) wp_attachment_is_image( $id );
 			},
 		)
-	) )->design(
-		array(
-			'page'     => array(
-				'w' => max( 10, $width ),
-				'h' => max( 10, $height ),
-			),
-			'elements' => array_map(
-				static function ( $element, $i ) {
-					return $element + array( 'id' => 'e' . $i );
-				},
-				$elements,
-				array_keys( $elements )
-			),
-		)
 	);
+}
+
+/**
+ * The colors a frame gives its shapes (`$primary` in a fill), from the context it provides.
+ *
+ * @param \WP_Block $block A shape.
+ * @return array<string, string>
+ */
+function colors_of( $block ) {
 	$colors = array();
-	foreach ( (array) ( $attributes['colors'] ?? array() ) as $name => $value ) {
+	foreach ( (array) ( $block->context['draw/colors'] ?? array() ) as $name => $value ) {
 		if ( is_string( $value ) ) {
 			$colors[ (string) $name ] = $value;
 		}
 	}
-	if ( ! $clean ) {
+
+	return $colors;
+}
+
+/**
+ * Whether a shape is inside a frame: only a frame gives its shapes the context, so a shape on its own (a parent the editor enforces,
+ * and the server does too) draws nothing.
+ *
+ * @param \WP_Block $block A shape.
+ * @return bool
+ */
+function inside_frame( $block ) {
+	return isset( $block->context['draw/colors'] );
+}
+
+/**
+ * A shape block as a cleaned element of the package's model, or null when what it says is not a shape.
+ *
+ * @param string               $type       The type (rect, ellipse…).
+ * @param array<string, mixed> $attributes The block's attributes.
+ * @return array<string, mixed>|null
+ */
+function clean_shape( $type, array $attributes ) {
+	return cleaner()->element( array( 'type' => $type, 'id' => 'shape' ) + $attributes ); // phpcs:ignore Universal.Arrays.MultipleStatementAlignment
+}
+
+/**
+ * Draws a shape: its own piece of SVG.
+ *
+ * @param string    $name       Block name.
+ * @param array     $attributes Attributes.
+ * @param string    $content    What its inner blocks drew.
+ * @param \WP_Block $block      The block.
+ * @return string
+ */
+function render_shape( $name, $attributes, $content, $block ) {
+	if ( ! inside_frame( $block ) ) {
 		return '';
 	}
+	$element = clean_shape( SHAPES[ $name ], (array) $attributes );
+	if ( ! $element ) {
+		return '';
+	}
+	if ( 'svg' === $element['type'] ) {
+		return Svg::nested( $element, $content );
+	}
 
-	return sprintf( '<div %s>%s</div>', get_block_wrapper_attributes( array( 'class' => 'draw-frame' ) ), Svg::render( $clean['elements'], max( 10, $width ), max( 10, $height ), $colors ) );
+	return Svg::element( $element, colors_of( $block ) );
+}
+
+/**
+ * The frame: the SVG around what its shapes drew.
+ *
+ * @param array<string, mixed> $attributes The block's attributes.
+ * @param string               $content    What the shapes drew.
+ * @return string
+ */
+function render_frame( $attributes, $content ) {
+	$width  = max( 10, Page::length( $attributes['width'] ?? '600px' ) );
+	$height = max( 10, Page::length( $attributes['height'] ?? '400px' ) );
+
+	return sprintf( '<div %s>%s</div>', get_block_wrapper_attributes( array( 'class' => 'draw-frame' ) ), Svg::frame( $width, $height, $content ) );
 }
 
 add_action(
@@ -112,12 +133,12 @@ add_action(
 		register_block_type(
 			'draw/frame',
 			array(
-				'api_version'     => 3,
-				'title'           => __( 'Drawing', 'draw' ),
-				'description'     => __( 'A frame to draw in: rectangles, ellipses, lines, paths, SVG, images and text, placed in points.', 'draw' ),
-				'category'        => 'design',
-				'icon'            => 'art',
-				'attributes'      => array(
+				'api_version'      => 3,
+				'title'            => __( 'Drawing', 'draw' ),
+				'description'      => __( 'A frame to draw in: rectangles, ellipses, lines, paths, SVG, images and text, placed in points.', 'draw' ),
+				'category'         => 'design',
+				'icon'             => 'art',
+				'attributes'       => array(
 					'width'  => array(
 						'type'    => 'string',
 						'default' => '600px',
@@ -131,9 +152,10 @@ add_action(
 						'default' => array(),
 					),
 				),
-				'supports'        => array( 'html' => false ),
-				'editor_script'   => 'draw-editor',
-				'render_callback' => __NAMESPACE__ . '\render_frame',
+				'provides_context' => array( 'draw/colors' => 'colors' ),
+				'supports'         => array( 'html' => false ),
+				'editor_script'    => 'draw-editor',
+				'render_callback'  => __NAMESPACE__ . '\render_frame',
 			)
 		);
 		foreach ( array_keys( SHAPES ) as $name ) {
@@ -143,7 +165,8 @@ add_action(
 					'api_version'     => 3,
 					'title'           => ucfirst( substr( $name, 5 ) ),
 					'category'        => 'design',
-					'parent'          => 'draw/frame' === $name ? array() : array( 'draw/frame' ),
+					'parent'          => array( 'draw/frame' ), // A shape is only drawn inside a frame.
+					'uses_context'    => array( 'draw/colors' ),
 					'attributes'      => array(
 						'x'    => array( 'type' => 'number' ),
 						'y'    => array( 'type' => 'number' ),
@@ -152,8 +175,8 @@ add_action(
 						'fill' => array( 'type' => 'string' ),
 					),
 					'editor_script'   => 'draw-editor',
-					'render_callback' => static function () {
-						return ''; // The frame draws its shapes.
+					'render_callback' => static function ( $attributes, $content, $block ) use ( $name ) {
+						return render_shape( $name, $attributes, $content, $block );
 					},
 				)
 			);
@@ -165,14 +188,15 @@ add_action(
 				'title'           => __( 'Path', 'draw' ),
 				'category'        => 'design',
 				'parent'          => array( 'draw/svg' ),
+				'uses_context'    => array( 'draw/colors' ),
 				'attributes'      => array(
 					'd'    => array( 'type' => 'string' ),
 					'fill' => array( 'type' => 'string' ),
 					'rule' => array( 'type' => 'string' ),
 				),
 				'editor_script'   => 'draw-editor',
-				'render_callback' => static function () {
-					return '';
+				'render_callback' => static function ( $attributes, $content, $block ) {
+					return inside_frame( $block ) && Paths::is_data( $attributes['d'] ?? '' ) ? Svg::path( (array) $attributes, colors_of( $block ) ) : '';
 				},
 			)
 		);

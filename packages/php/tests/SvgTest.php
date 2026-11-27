@@ -45,4 +45,15 @@ final class SvgTest extends TestCase {
 		}
 		$this->assertSame( 1, substr_count( $svg, '<svg ' ) );
 	}
+
+	public function test_a_shape_a_path_a_group_and_a_frame_are_drawn_on_their_own() {
+		$this->assertSame( '<rect x="1" y="2" width="3" height="4" fill="#fff"/>', Svg::element( array( 'type' => 'rect', 'x' => 1, 'y' => 2, 'w' => 3, 'h' => 4, 'fill' => '#fff' ) ) ); // phpcs:ignore
+		$this->assertSame( '<path d="M0 0L5 5Z" fill="#112233" fill-rule="evenodd"/>', Svg::path( array( 'd' => 'M0 0L5 5Z', 'fill' => '$a', 'rule' => 'evenodd' ), array( 'a' => '#112233' ) ) );
+		$this->assertSame( '', Svg::path( array( 'd' => 'M0 0<script>' ) ) );
+		$group = Svg::nested( array( 'x' => 1, 'y' => 2, 'w' => 10, 'h' => 10, 'vw' => 24, 'vh' => 24 ), '<path d="M0 0L1 1Z" fill="currentColor"/>' ); // phpcs:ignore
+		$this->assertStringContainsString( 'viewBox="0 0 24 24"', $group );
+		$frame = Svg::frame( 300, 120, $group );
+		$this->assertStringStartsWith( '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 120"', $frame );
+		$this->assertSame( 2, substr_count( $frame, '<svg ' ) );
+	}
 }

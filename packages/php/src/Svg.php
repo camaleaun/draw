@@ -79,14 +79,14 @@ final class Svg {
 	}
 
 	/**
-	 * One element.
+	 * One element, drawn: the drawing of a single shape block (a frame draws its shapes by drawing each).
 	 *
 	 * @param array<string, mixed>  $el     Element.
 	 * @param array<string, string> $colors Variables.
 	 * @param callable|null         $image  Address of a picture.
 	 * @return string
 	 */
-	private static function element( array $el, array $colors, $image ) {
+	public static function element( array $el, array $colors = array(), $image = null ) {
 		$type   = (string) ( $el['type'] ?? '' );
 		$x      = (float) ( $el['x'] ?? 0 );
 		$y      = (float) ( $el['y'] ?? 0 );
@@ -162,5 +162,57 @@ final class Svg {
 		}
 
 		return '' === $group ? $inside : '<g' . $group . '>' . $inside . '</g>';
+	}
+
+	/**
+	 * A nested SVG at the place of an element, around what is already drawn inside it (the paths of an SVG group).
+	 *
+	 * @param array<string, mixed> $el    Element (x, y, w, h, vw, vh).
+	 * @param string               $inner SVG already drawn.
+	 * @return string
+	 */
+	public static function nested( array $el, $inner ) {
+		return sprintf(
+			'<svg x="%s" y="%s" width="%s" height="%s" viewBox="0 0 %s %s" overflow="hidden">%s</svg>',
+			self::n( $el['x'] ?? 0 ),
+			self::n( $el['y'] ?? 0 ),
+			self::n( $el['w'] ?? 0 ),
+			self::n( $el['h'] ?? 0 ),
+			self::n( max( 1.0, (float) ( $el['vw'] ?? 100 ) ) ),
+			self::n( max( 1.0, (float) ( $el['vh'] ?? 100 ) ) ),
+			$inner
+		);
+	}
+
+	/**
+	 * One path of an SVG group, drawn.
+	 *
+	 * @param array<string, mixed>  $path   Path (d, fill, rule).
+	 * @param array<string, string> $colors Variables.
+	 * @param string                $other  Fill when the path has none.
+	 * @return string
+	 */
+	public static function path( array $path, array $colors = array(), $other = 'currentColor' ) {
+		$d = (string) ( $path['d'] ?? '' );
+		if ( ! Paths::is_data( $d ) ) {
+			return '';
+		}
+
+		return sprintf( '<path d="%s" fill="%s"%s/>', self::e( $d ), self::e( self::color( $path['fill'] ?? '', $colors, $other ) ), 'evenodd' === ( $path['rule'] ?? '' ) ? ' fill-rule="evenodd"' : '' );
+	}
+
+	/**
+	 * The frame: the SVG around what its shapes drew.
+	 *
+	 * @param float  $width  Width.
+	 * @param float  $height Height.
+	 * @param string $inner  The shapes, drawn.
+	 * @return string
+	 */
+	public static function frame( $width, $height, $inner ) {
+		$width  = max( 1.0, (float) $width );
+		$height = max( 1.0, (float) $height );
+
+		return sprintf( '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %s %s" width="%s" height="%s" role="img">%s</svg>', self::n( $width ), self::n( $height ), self::n( $width ), self::n( $height ), $inner );
 	}
 }
