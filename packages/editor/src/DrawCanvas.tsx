@@ -23,6 +23,9 @@ const SHAPES: Array< [ string, string, Record< string, unknown > ] > = [
 	[ 'draw/svg', __( 'SVG', 'draw' ), { w: 64, h: 64, vw: 24, vh: 24 } ],
 ];
 
+/** The WordPress icon library's "info" icon, one path with no fill-rule (the winding does the hole): what a new SVG shows. */
+const INFO_ICON = 'M5.5 12a6.5 6.5 0 1 1 13 0 6.5 6.5 0 0 1-13 0ZM12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm.75 4v1.5h-1.5V8h1.5Zm0 8v-5h-1.5v5h1.5Z';
+
 export function DrawCanvas( { clientId, width, height, colors = {} }: { clientId: string; width: number; height: number; colors?: Record< string, string > } ) {
 	const { blocks, selected } = useSelect(
 		( select: any ) => {
@@ -90,7 +93,7 @@ export function DrawCanvas( { clientId, width, height, colors = {} }: { clientId
 		const w = Number( attrs.w ) || 0;
 		const h = Number( attrs.h ) || 0;
 		const place = { x: round( ( width - w ) / 2 ), y: round( ( height - h ) / 2 ) };
-		const inner = name === 'draw/svg' ? [ createBlock( 'draw/svg-path', { d: 'M12 2 22 12 12 22 2 12Z' } ) ] : [];
+		const inner = name === 'draw/svg' ? [ createBlock( 'draw/svg-path', { d: INFO_ICON } ) ] : [];
 		insertBlocks( createBlock( name, { ...attrs, ...place }, inner ), undefined, clientId );
 	};
 

@@ -353,6 +353,7 @@
     ["draw/text", (0, import_i18n.__)("Text", "draw"), { w: 160, h: 24, size: 18, runs: [{ text: (0, import_i18n.__)("Text", "draw") }] }],
     ["draw/svg", (0, import_i18n.__)("SVG", "draw"), { w: 64, h: 64, vw: 24, vh: 24 }]
   ];
+  var INFO_ICON = "M5.5 12a6.5 6.5 0 1 1 13 0 6.5 6.5 0 0 1-13 0ZM12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16Zm.75 4v1.5h-1.5V8h1.5Zm0 8v-5h-1.5v5h1.5Z";
   function DrawCanvas({ clientId, width, height, colors = {} }) {
     const { blocks, selected } = (0, import_data.useSelect)(
       (select) => {
@@ -417,7 +418,7 @@
       const w = Number(attrs.w) || 0;
       const h = Number(attrs.h) || 0;
       const place = { x: round((width - w) / 2), y: round((height - h) / 2) };
-      const inner = name === "draw/svg" ? [(0, import_blocks.createBlock)("draw/svg-path", { d: "M12 2 22 12 12 22 2 12Z" })] : [];
+      const inner = name === "draw/svg" ? [(0, import_blocks.createBlock)("draw/svg-path", { d: INFO_ICON })] : [];
       insertBlocks((0, import_blocks.createBlock)(name, { ...attrs, ...place }, inner), void 0, clientId);
     };
     const cur = current ? boxOf(current.attributes) : null;
