@@ -68,8 +68,10 @@ final class Page {
 		$out            = array_diff_key( $page, array_flip( array( 'width', 'height', 'backgroundColor', 'safe', 'bleed' ) ) );
 		$width          = self::length( $page['width'] );
 		$height         = self::length( $page['height'] ?? '' );
-		$out['w']       = $width > 0 ? $width : 841.89;
-		$out['h']       = $height > 0 ? $height : 595.28;
+		// To the hundredth of a point, as it was kept before units: 297mm is 841.89105 with the factor of a mm, and that much over the width of the
+		// sheet is a page more in the PDF.
+		$out['w']       = $width > 0 ? round( $width, 2 ) : 841.89;
+		$out['h']       = $height > 0 ? round( $height, 2 ) : 595.28;
 		$out['bg']      = $page['backgroundColor'] ?? '$background';
 		$out['safe']    = self::length( $page['safe'] ?? 0 );
 		$out['bleed']   = self::length( $page['bleed'] ?? 0 );

@@ -151,6 +151,10 @@ final class CleanTest extends TestCase {
 		// What an earlier version wrote (a point as px) is read as it was.
 		$earlier = $this->clean()->design( array( 'page' => array( 'width' => '841.89px', 'height' => '595.28px' ), 'elements' => array() ) );
 		$this->assertSame( '297mm', $earlier['page']['width'] );
+		// Read back in points to the hundredth: 297mm by 210mm is 841.89 by 595.28.
+		$points = Page::in_points( $clean )['page'];
+		$this->assertSame( 841.89, $points['w'] );
+		$this->assertSame( 595.28, $points['h'] );
 	}
 
 	public function test_the_size_of_a_page_is_in_the_unit_that_makes_it_round() {
