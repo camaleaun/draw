@@ -1,0 +1,48 @@
+<?php
+namespace Camaleaun\Draw\Tests;
+
+use Camaleaun\Draw\Svg;
+use PHPUnit\Framework\TestCase;
+
+/**
+ * A frame drawn as SVG: every shape at its place, and nothing a value can say reaches the markup as code.
+ */
+final class SvgTest extends TestCase {
+
+	public function test_the_shapes_are_drawn_at_their_place() {
+		$svg = Svg::render(
+			array(
+				array( 'type' => 'rect', 'x' => 1, 'y' => 2, 'w' => 30, 'h' => 10, 'fill' => '$primary', 'radius' => array( 3, 3, 3, 3 ) ), // phpcs:ignore
+				array( 'type' => 'ellipse', 'x' => 0, 'y' => 0, 'w' => 20, 'h' => 10, 'fill' => '#ff0000' ), // phpcs:ignore
+				array( 'type' => 'svg', 'x' => 5, 'y' => 5, 'w' => 24, 'h' => 24, 'vw' => 24, 'vh' => 24, 'paths' => array( array( 'd' => 'M0 0L24 24Z' ) ) ), // phpcs:ignore
+				array( 'type' => 'text', 'x' => 0, 'y' => 0, 'w' => 100, 'h' => 20, 'size' => 12, 'align' => 'center', 'runs' => array( array( 'text' => 'Hi' ) ) ), // phpcs:ignore
+			),
+			200,
+			100,
+			array( 'primary' => '#112233' )
+		);
+		$this->assertStringContainsString( 'viewBox="0 0 200 100"', $svg );
+		$this->assertStringContainsString( '<rect x="1" y="2" width="30" height="10" rx="3" fill="#112233"/>', $svg );
+		$this->assertStringContainsString( '<ellipse cx="10" cy="5" rx="10" ry="5" fill="#ff0000"/>', $svg );
+		$this->assertStringContainsString( '<path d="M0 0L24 24Z" fill="currentColor"/>', $svg );
+		$this->assertStringContainsString( 'text-anchor="middle"', $svg );
+	}
+
+	public function test_nothing_a_value_says_reaches_the_markup_as_code() {
+		$svg = Svg::render(
+			array(
+				array( 'type' => 'rect', 'x' => 0, 'y' => 0, 'w' => 5, 'h' => 5, 'fill' => 'red" onload="alert(1)', 'stroke' => 'url(javascript:1)', 'strokeWidth' => 2 ), // phpcs:ignore
+				array( 'type' => 'path', 'x' => 0, 'y' => 0, 'w' => 5, 'h' => 5, 'd' => 'M0 0<script>alert(1)</script>' ), // phpcs:ignore
+				array( 'type' => 'image', 'x' => 0, 'y' => 0, 'w' => 5, 'h' => 5, 'src' => 'javascript:alert(1)' ), // phpcs:ignore
+				array( 'type' => 'text', 'x' => 0, 'y' => 0, 'w' => 5, 'h' => 5, 'runs' => array( array( 'text' => '</text><script>alert(1)</script>' ) ) ), // phpcs:ignore
+				array( 'type' => 'script', 'x' => 0, 'y' => 0, 'w' => 5, 'h' => 5 ), // phpcs:ignore
+			),
+			10,
+			10
+		);
+		foreach ( array( '<script', 'onload', 'javascript:', 'url(' ) as $bad ) {
+			$this->assertStringNotContainsString( $bad, $svg, $bad );
+		}
+		$this->assertSame( 1, substr_count( $svg, '<svg ' ) );
+	}
+}
