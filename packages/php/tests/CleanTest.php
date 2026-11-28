@@ -312,4 +312,21 @@ final class CleanTest extends TestCase {
 		$walk( $out['elements'] );
 		$this->assertSame( 300, $count );
 	}
+
+	public function test_a_group_may_be_a_row_or_a_stack_and_its_elements_may_grow() {
+		$out = $this->clean()->element(
+			$this->group(
+				'g',
+				array( array( 'id' => 'a', 'type' => 'rect', 'w' => 10, 'h' => 10, 'grow' => 2 ) ),
+				array( 'arrange' => 'row', 'gap' => 8, 'padding' => 12, 'justify' => 'between', 'align' => 'stretch', 'wrap' => true )
+			)
+		);
+		$this->assertSame( 'row', $out['arrange'] );
+		$this->assertSame( array( 8, 12, 'between', 'stretch', true ), array( $out['gap'], $out['padding'], $out['justify'], $out['align'], $out['wrap'] ) );
+		$this->assertEquals( 2, $out['children'][0]['grow'] );
+		$free = $this->clean()->element( $this->group( 'g', array(), array( 'arrange' => 'grid', 'gap' => 8, 'justify' => 'center' ) ) );
+		$this->assertArrayNotHasKey( 'arrange', $free, 'There is no grid, and what a free group has no use for is not kept.' );
+		$this->assertArrayNotHasKey( 'gap', $free );
+		$this->assertArrayNotHasKey( 'justify', $free );
+	}
 }

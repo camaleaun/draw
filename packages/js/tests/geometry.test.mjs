@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { radiusPt, pageSize, parseLen, isLen, refBox, resolve, placed, layoutFrom, lockedRatio, rectPath, svgCodeAllowed, isPathData, isFill } from '../dist/index.js';
+import { placeChildren, flowBoxes, radiusPt, pageSize, parseLen, isLen, refBox, resolve, placed, layoutFrom, lockedRatio, rectPath, svgCodeAllowed, isPathData, isFill } from '../dist/index.js';
 
 const page = { w: 800, h: 600, safe: 28.3465 };
 
@@ -117,5 +117,43 @@ test( 'inside a group an element is placed from the corner of the group, and anc
 	assert.equal( moved.layout.h.end, '20pt' );
 	// With no group the parent is the page.
 	assert.deepEqual( refBox( page, 'parent' ), { x: 0, y: 0, w: 800, h: 600 } );
+} );
+
+
+test( 'a row and a stack place what is in them one after the other, justified and aligned', () => {
+	const items = [ { w: 40, h: 10 }, { w: 60, h: 20 }, { w: 20, h: 30 } ];
+	const row = { w: 300, h: 100, arrange: 'row', gap: 10, padding: 5 };
+	const start = flowBoxes( row, items );
+	assert.deepEqual( start.map( ( b ) => [ b.x, b.y, b.w, b.h ] ), [ [ 5, 5, 40, 10 ], [ 55, 5, 60, 20 ], [ 125, 5, 20, 30 ] ] );
+	const centered = flowBoxes( { ...row, justify: 'center', align: 'center' }, items );
+	assert.equal( centered[ 0 ].x, 5 + ( 290 - 140 ) / 2, 'the room left (290 less 120 of widths and 20 of gaps) is shared in two' );
+	assert.equal( centered[ 0 ].y, 5 + ( 90 - 10 ) / 2 );
+	const end = flowBoxes( { ...row, justify: 'end', align: 'end' }, items );
+	assert.equal( end[ 2 ].x + end[ 2 ].w, 295 );
+	assert.equal( end[ 0 ].y + end[ 0 ].h, 95 );
+	const between = flowBoxes( { ...row, justify: 'between' }, items );
+	assert.deepEqual( [ between[ 0 ].x, between[ 2 ].x + between[ 2 ].w ], [ 5, 295 ] );
+	const stretch = flowBoxes( { ...row, align: 'stretch' }, items );
+	assert.deepEqual( stretch.map( ( b ) => b.h ), [ 90, 90, 90 ] );
+	const stack = flowBoxes( { w: 100, h: 300, arrange: 'stack', gap: 10 }, items );
+	assert.deepEqual( stack.map( ( b ) => [ b.x, b.y, b.w, b.h ] ), [ [ 0, 0, 40, 10 ], [ 0, 20, 60, 20 ], [ 0, 50, 20, 30 ] ] );
+} );
+
+test( 'what grows shares the room that is left, and a row may wrap', () => {
+	const grown = flowBoxes( { w: 200, h: 50, arrange: 'row', gap: 10 }, [ { w: 40, h: 10 }, { w: 20, h: 10, grow: 1 }, { w: 20, h: 10, grow: 3 } ] );
+	// 200 - 40 - 20 - 20 - 2 gaps (20) = 100 left: 25 and 75 more.
+	assert.deepEqual( grown.map( ( b ) => [ b.x, b.w ] ), [ [ 0, 40 ], [ 50, 45 ], [ 105, 95 ] ] );
+	const wrapped = flowBoxes( { w: 100, h: 200, arrange: 'row', gap: 10, wrap: true }, [ { w: 60, h: 20 }, { w: 60, h: 30 }, { w: 30, h: 10 } ] );
+	assert.deepEqual( wrapped.map( ( b ) => [ b.x, b.y ] ), [ [ 0, 0 ], [ 0, 30 ], [ 70, 30 ] ] );
+	assert.deepEqual( flowBoxes( { w: 100, h: 100, arrange: 'row' }, [] ), [] );
+} );
+
+test( 'what is in a group is placed by the flow in a row, and by its own anchors in a free group', () => {
+	const kids = [ { type: 'rect', w: 40, h: 10 }, { type: 'rect', w: 20, h: 10, hidden: true }, { type: 'rect', w: 30, h: 10 } ];
+	const row = placeChildren( { w: 200, h: 50, arrange: 'row', gap: 10 }, kids );
+	assert.deepEqual( [ row[ 0 ].x, row[ 2 ].x ], [ 0, 50 ], 'the hidden one takes no room' );
+	assert.equal( row[ 1 ].x, undefined );
+	const free = placeChildren( { w: 200, h: 50 }, [ { type: 'rect', layout: { ref: 'parent', h: { mode: 'stretch', start: '5pt', end: '5pt' }, v: { mode: 'start', start: '0pt', size: '10pt' } } } ] );
+	assert.deepEqual( [ free[ 0 ].x, free[ 0 ].w ], [ 5, 190 ] );
 } );
 

@@ -511,3 +511,83 @@ export function resizeBox( origin: Box, handle: string, dx: number, dy: number, 
 	}
 	return { x, y, w, h };
 }
+
+/** How a group places what is in it: free (each element by its own place and anchors), in a row, or in a stack (as the core's Row and Stack). */
+export type Arrange = 'free' | 'row' | 'stack';
+export type FlowGroup = { w: number; h: number; arrange?: Arrange; gap?: number; padding?: number; justify?: 'start' | 'center' | 'end' | 'between'; align?: 'start' | 'center' | 'end' | 'stretch'; wrap?: boolean };
+export type FlowItem = { w: number; h: number; grow?: number };
+
+/**
+ * The boxes (x, y, w, h from the group's corner) of what is in a row or a stack, one after the other along the main axis (the width of a row, the height of a
+ * stack) inside the padding, with `gap` between them. `justify` spreads them along the main axis (start, center, end, or between, with the room that is left
+ * between them); an element with `grow` shares the room that is left with the others that grow, and then there is nothing to justify. `align` puts them on the
+ * cross axis (start, center, end, or stretch to the whole). With `wrap` what does not fit goes on to a new line. The group keeps its size.
+ */
+export function flowBoxes( group: FlowGroup, items: FlowItem[] ): Box[] {
+	const row = group.arrange !== 'stack';
+	const pad = Math.max( 0, group.padding || 0 );
+	const gap = Math.max( 0, group.gap || 0 );
+	const main = Math.max( 0, ( row ? group.w : group.h ) - pad * 2 );
+	const cross = Math.max( 0, ( row ? group.h : group.w ) - pad * 2 );
+	const along = ( it: FlowItem ) => ( row ? it.w : it.h );
+	const across = ( it: FlowItem ) => ( row ? it.h : it.w );
+	const lines: number[][] = [];
+	let line: number[] = [];
+	let used = 0;
+	items.forEach( ( it, i ) => {
+		const need = along( it ) + ( line.length ? gap : 0 );
+		if ( group.wrap && line.length && used + need > main + 0.001 ) {
+			lines.push( line );
+			line = [ i ];
+			used = along( it );
+		} else {
+			line.push( i );
+			used += need;
+		}
+	} );
+	if ( line.length ) {
+		lines.push( line );
+	}
+	const out: Box[] = new Array( items.length );
+	let offset = 0;
+	for ( const indexes of lines ) {
+		const size = group.wrap ? Math.max( 0, ...indexes.map( ( i ) => across( items[ i ] ) ) ) : cross;
+		const sum = indexes.reduce( ( n, i ) => n + along( items[ i ] ), 0 ) + gap * ( indexes.length - 1 );
+		const left = main - sum;
+		const grows = indexes.reduce( ( n, i ) => n + Math.max( 0, items[ i ].grow || 0 ), 0 );
+		const room = left > 0 && grows > 0 ? left : 0;
+		const free = grows > 0 && left > 0 ? 0 : Math.max( 0, left );
+		let at = group.justify === 'center' ? free / 2 : group.justify === 'end' ? free : 0;
+		const between = group.justify === 'between' && indexes.length > 1 ? free / ( indexes.length - 1 ) : 0;
+		for ( const i of indexes ) {
+			const it = items[ i ];
+			const length = along( it ) + ( room ? ( room * Math.max( 0, it.grow || 0 ) ) / grows : 0 );
+			const thick = group.align === 'stretch' ? size : across( it );
+			const place = group.align === 'center' ? ( size - thick ) / 2 : group.align === 'end' ? size - thick : 0;
+			const m = pad + at;
+			const c = pad + offset + place;
+			out[ i ] = row ? { x: m, y: c, w: length, h: thick } : { x: c, y: m, w: thick, h: length };
+			at += length + gap + between;
+		}
+		offset += size + gap;
+	}
+	return out;
+}
+
+/**
+ * What is in a group with its places resolved (x, y, w, h from the group's corner): in a row or a stack the flow places them (hidden ones take no room), in a
+ * free group each by its own place or anchors, to the size of the group.
+ */
+export function placeChildren< T extends Placeable & { hidden?: boolean; grow?: number } >( group: FlowGroup, children: T[] ): T[] {
+	if ( group.arrange === 'row' || group.arrange === 'stack' ) {
+		const shown = children.filter( ( el ) => ! el.hidden );
+		const boxes = flowBoxes( group, shown.map( ( el ) => ( { w: el.w || 0, h: el.h || 0, grow: el.grow } ) ) );
+		return children.map( ( el ) => {
+			const at = shown.indexOf( el );
+			return at < 0 ? el : { ...el, ...boxes[ at ] };
+		} );
+	}
+	const inner = { w: group.w, h: group.h, safe: 0 };
+	return children.map( ( el ) => resolve( el, inner, { x: 0, y: 0, w: group.w, h: group.h } ) );
+}
+

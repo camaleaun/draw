@@ -283,6 +283,7 @@ final class Clean {
 			'opacity'  => array( 0, 1 ),
 			'rotation' => array( -360, 360 ),
 			'lock'     => array( 0, 1000 ),
+			'grow'     => array( 0, 100 ),
 		);
 		if ( 'line' === $type ) {
 			foreach ( array( 'x1', 'y1', 'x2', 'y2' ) as $key ) {
@@ -398,6 +399,23 @@ final class Clean {
 					// A group clips what is in it to its box, unless it says it does not (only the exception is written).
 					if ( false === ( $element['clip'] ?? true ) ) {
 						$out['clip'] = false;
+					}
+					// Row or stack (the free group has none: each element has its own place). The gap and the padding are points, the room is as the core's flex layout.
+					if ( in_array( $element['arrange'] ?? '', array( 'row', 'stack' ), true ) ) {
+						$out['arrange'] = $element['arrange'];
+						$number( 'gap', 0, 5000 );
+						$number( 'padding', 0, 5000 );
+						foreach ( array(
+							'justify' => array( 'start', 'center', 'end', 'between' ),
+							'align'   => array( 'start', 'center', 'end', 'stretch' ),
+						) as $key => $allowed ) {
+							if ( in_array( $element[ $key ] ?? '', $allowed, true ) ) {
+								$out[ $key ] = $element[ $key ];
+							}
+						}
+						if ( ! empty( $element['wrap'] ) ) {
+							$out['wrap'] = true;
+						}
 					}
 					$out['children'] = $this->clean_children( $element['children'] ?? array(), $notes );
 				}

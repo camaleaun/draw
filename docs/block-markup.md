@@ -11,6 +11,11 @@
 
 A shape can only be inside a frame, or a group in one (the editor enforces it, and the plugin draws nothing for a shape that is not in one).
 
+**A group can be a row or a stack**, as the core's Group variations are: `arrange` is `row` or `stack` (a free group has none), with `gap` and `padding` in points,
+`justify` (`start`, `center`, `end`, `between`: along the row or the stack), `align` (`start`, `center`, `end`, `stretch`: across it) and `wrap` (what does not fit goes on to a
+new line). What is in it is placed one after the other from the padding, whatever its `x` and `y`; an element with `grow` (a number) shares the room that is left with the others
+that grow, and what is hidden takes no room. The group keeps its own size. There is no grid. `Flow::boxes()` (PHP) and `flowBoxes()` (TypeScript) are the same.
+
 **What is in a group** is placed from the group's top-left corner, and its anchors (`layout`, with `"ref":"parent"`) are to the size of the group:
 `x`, `y`, a length in `%` and "fill" (stretch) are of the group's box, not of the page. A group's elements have ids that follow the group's
 (`group-2-rect-1`), made again by position when the file is read, like any id.

@@ -137,8 +137,8 @@ final class Svg {
 					if ( isset( $el['inner'] ) && is_string( $el['inner'] ) ) {
 						$inner = $el['inner'];
 					} else {
-						foreach ( (array) ( $el['children'] ?? array() ) as $child ) {
-							$inner .= is_array( $child ) ? self::element( $child, $colors, $image ) : '';
+						foreach ( self::place_children( $el ) as $child ) {
+							$inner .= empty( $child['hidden'] ) ? self::element( $child, $colors, $image ) : '';
 						}
 					}
 					$inside .= sprintf( '<svg x="%s" y="%s" width="%s" height="%s" overflow="%s">%s</svg>', self::n( $x ), self::n( $y ), self::n( $w ), self::n( $h ), false === ( $el['clip'] ?? true ) ? 'visible' : 'hidden', $inner );
@@ -196,6 +196,30 @@ final class Svg {
 		}
 
 		return '' === $group ? $inside : '<g' . $group . '>' . $inside . '</g>';
+	}
+
+	/**
+	 * What is in a group, with its places: in a row or a stack the flow places them (what is hidden takes no room); in a free group each is where it says.
+	 *
+	 * @param array<string, mixed> $group Group.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public static function place_children( array $group ) {
+		$children = array_values( array_filter( (array) ( $group['children'] ?? array() ), 'is_array' ) );
+		if ( ! in_array( $group['arrange'] ?? '', array( 'row', 'stack' ), true ) ) {
+			return $children;
+		}
+		$shown = array_keys( array_filter( $children, static function ( $c ) {
+			return empty( $c['hidden'] );
+		} ) );
+		$boxes = Flow::boxes( $group, array_map( static function ( $i ) use ( $children ) {
+			return $children[ $i ];
+		}, $shown ) );
+		foreach ( $shown as $at => $i ) {
+			$children[ $i ] = array_merge( $children[ $i ], $boxes[ $at ] );
+		}
+
+		return $children;
 	}
 
 	/**

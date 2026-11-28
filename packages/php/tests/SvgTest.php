@@ -82,4 +82,41 @@ final class SvgTest extends TestCase {
 		$open = Svg::element( array( 'type' => 'group', 'x' => 0, 'y' => 0, 'w' => 10, 'h' => 10, 'clip' => false, 'children' => array() ) );
 		$this->assertStringContainsString( 'overflow="visible"', $open );
 	}
+
+	public function test_the_flow_of_a_row_is_the_same_as_the_typescript_one() {
+		$items = array( array( 'w' => 40, 'h' => 10 ), array( 'w' => 60, 'h' => 20 ), array( 'w' => 20, 'h' => 30 ) );
+		$row   = array( 'w' => 300, 'h' => 100, 'arrange' => 'row', 'gap' => 10, 'padding' => 5 );
+		$boxes = \Camaleaun\Draw\Flow::boxes( $row, $items );
+		$this->assertEquals( array( array( 5, 5, 40, 10 ), array( 55, 5, 60, 20 ), array( 125, 5, 20, 30 ) ), array_map( 'array_values', $boxes ) );
+		$center = \Camaleaun\Draw\Flow::boxes( $row + array( 'justify' => 'center', 'align' => 'center' ), $items );
+		$this->assertEqualsWithDelta( 80.0, $center[0]['x'], 0.001 );
+		$this->assertEqualsWithDelta( 45.0, $center[0]['y'], 0.001 );
+		$grown = \Camaleaun\Draw\Flow::boxes( array( 'w' => 200, 'h' => 50, 'arrange' => 'row', 'gap' => 10 ), array( array( 'w' => 40, 'h' => 10 ), array( 'w' => 20, 'h' => 10, 'grow' => 1 ), array( 'w' => 20, 'h' => 10, 'grow' => 3 ) ) );
+		$this->assertEquals( array( array( 0, 40 ), array( 50, 45 ), array( 105, 95 ) ), array_map( static function ( $b ) { return array( $b['x'], $b['w'] ); }, $grown ) );
+		$wrapped = \Camaleaun\Draw\Flow::boxes( array( 'w' => 100, 'h' => 200, 'arrange' => 'row', 'gap' => 10, 'wrap' => true ), array( array( 'w' => 60, 'h' => 20 ), array( 'w' => 60, 'h' => 30 ), array( 'w' => 30, 'h' => 10 ) ) );
+		$this->assertEquals( array( array( 0, 0 ), array( 0, 30 ), array( 70, 30 ) ), array_map( static function ( $b ) { return array( $b['x'], $b['y'] ); }, $wrapped ) );
+		$stack = \Camaleaun\Draw\Flow::boxes( array( 'w' => 100, 'h' => 300, 'arrange' => 'stack', 'gap' => 10 ), $items );
+		$this->assertEquals( array( array( 0, 0, 40, 10 ), array( 0, 20, 60, 20 ), array( 0, 50, 20, 30 ) ), array_map( 'array_values', $stack ) );
+	}
+
+	public function test_a_row_group_draws_what_is_in_it_one_after_the_other() {
+		$svg = Svg::element(
+			array(
+				'type'     => 'group',
+				'x'        => 0,
+				'y'        => 0,
+				'w'        => 200,
+				'h'        => 50,
+				'arrange'  => 'row',
+				'gap'      => 10,
+				'children' => array(
+					array( 'type' => 'rect', 'w' => 40, 'h' => 10, 'fill' => '#111111' ),
+					array( 'type' => 'rect', 'w' => 20, 'h' => 10, 'fill' => '#222222', 'hidden' => true ),
+					array( 'type' => 'rect', 'w' => 30, 'h' => 10, 'fill' => '#333333' ),
+				),
+			)
+		);
+		$this->assertStringContainsString( '<rect x="0" y="0" width="40" height="10" fill="#111111"/>', $svg );
+		$this->assertStringContainsString( '<rect x="50" y="0" width="30" height="10" fill="#333333"/>', $svg );
+	}
 }
