@@ -349,8 +349,16 @@ final class Clean {
 				return;
 			}
 			list( $n, $unit ) = $parsed;
-			$limit            = '%' === $unit || '' === $unit ? $percent : ( 'lh' === $unit ? $max : $other );
-			$low              = 'lh' === $unit ? $min : -$limit;
+			// No unit: a line height is a multiplier (a number), a letter spacing a percentage.
+			if ( '' === $unit && 'lh' === $key ) {
+				$value = $this->clean_number( $n, $min, $max );
+				if ( null !== $value ) {
+					$out[ $key ] = $value;
+				}
+				return;
+			}
+			$limit = '%' === $unit || '' === $unit ? $percent : ( 'lh' === $unit ? $max : $other );
+			$low   = 'lh' === $unit ? $min : -$limit;
 			if ( $n >= $low && $n <= $limit ) {
 				$out[ $key ] = ( round( $n, 3 ) + 0 ) . ( '' === $unit ? '%' : $unit );
 			}

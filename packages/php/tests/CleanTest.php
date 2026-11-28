@@ -368,6 +368,14 @@ final class CleanTest extends TestCase {
 				'ls'   => 'calc(1px)',
 			)
 		);
+		$plain = $this->clean()->element(
+			array(
+				'id'   => 'e',
+				'type' => 'text',
+				'lh'   => '1.3',
+			)
+		);
+		$this->assertSame( 1.3, $plain['lh'], 'A line height with no unit is a multiplier, a number.' );
 		$this->assertArrayNotHasKey( 'lh', $bad, 'Out of range.' );
 		$this->assertArrayNotHasKey( 'ls', $bad, 'Not a length.' );
 	}
