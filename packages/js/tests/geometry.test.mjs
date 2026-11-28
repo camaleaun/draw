@@ -188,6 +188,9 @@ test( 'a line height and a letter spacing are read with their unit, and a number
 	assert.equal( lineHeightFactor( '150%', 10 ), 1.5 );
 	assert.equal( lineHeightFactor( '16px', 10 ), 1.6 );
 	assert.equal( lineHeightFactor( '2lh', 10 ), 2 );
+	assert.equal( lineHeightFactor( '1.4em', 10 ), 1.4 );
+	assert.equal( letterSpacingPt( '0.05em', 20 ), 1 );
+	assert.equal( letterSpacingPt( '-0.1em', 10 ), -1 );
 	assert.equal( lineHeightFactor( 'nope', 10 ), 1.2 );
 	assert.equal( letterSpacingPt( 0.5, 10 ), 0.5, 'a number is points' );
 	assert.equal( letterSpacingPt( '5%', 10 ), 0.5 );

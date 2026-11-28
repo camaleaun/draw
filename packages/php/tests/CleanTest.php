@@ -360,6 +360,16 @@ final class CleanTest extends TestCase {
 			)
 		);
 		$this->assertSame( array( '5%', '1.5lh' ), array( $bare['ls'], $bare['lh'] ), 'A spacing with no unit is a percentage.' );
+		$em = $this->clean()->element(
+			array(
+				'id'   => 'e',
+				'type' => 'text',
+				'ls'   => '0.05em',
+				'lh'   => '1.4em',
+			)
+		);
+		$this->assertSame( array( '0.05em', '1.4em' ), array( $em['ls'], $em['lh'] ), 'em is the font size.' );
+		$this->assertArrayNotHasKey( 'ls', $this->clean()->element( array( 'id' => 'f', 'type' => 'text', 'ls' => '5em' ) ), 'A spacing of 5em is out of range.' );
 		$bad = $this->clean()->element(
 			array(
 				'id'   => 'd',

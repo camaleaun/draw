@@ -2,7 +2,7 @@
 /**
  * The line height and the letter spacing of a text, which may have a unit: the same as `typography.ts` of the TypeScript package.
  *
- * A number is what files wrote before units: the line height a multiplier of the font size (1.2), the letter spacing points. A text is a length with its unit: `lh` (a
+ * A number is what files wrote before units: the line height a multiplier of the font size (1.2), the letter spacing points. A text is a length with its unit: `em` (the font size: 1.4em is 1.4, 0.05em is 5%), `lh` (a
  * multiplier, the line height's own), `%` (of the font size), px, pt, mm, cm, in; with no unit a letter spacing is a percentage and a line height a multiplier.
  *
  * @package Camaleaun\Draw
@@ -15,7 +15,7 @@ namespace Camaleaun\Draw;
  */
 final class Text {
 
-	const PARSE = '/^\s*(-?\d*\.?\d+)\s*(lh|%|px|pt|mm|cm|in)?\s*$/i';
+	const PARSE = '/^\s*(-?\d*\.?\d+)\s*(lh|em|%|px|pt|mm|cm|in)?\s*$/i';
 
 	/**
 	 * A text length as a number and its unit ('' when it has none).
@@ -50,7 +50,7 @@ final class Text {
 		if ( '%' === $p[1] ) {
 			return $p[0] / 100;
 		}
-		if ( '' === $p[1] || 'lh' === $p[1] ) {
+		if ( '' === $p[1] || 'lh' === $p[1] || 'em' === $p[1] ) {
 			return $p[0];
 		}
 
@@ -74,6 +74,10 @@ final class Text {
 		}
 		if ( in_array( $p[1], array( '%', '', 'lh' ), true ) ) {
 			return $p[0] / 100 * $size;
+		}
+
+		if ( 'em' === $p[1] ) {
+			return $p[0] * $size;
 		}
 
 		return $p[0] * ( Page::UNITS[ $p[1] ] ?? 1 );

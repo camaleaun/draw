@@ -123,6 +123,8 @@ final class SvgTest extends TestCase {
 	public function test_a_line_height_and_a_letter_spacing_are_read_with_their_unit() {
 		$this->assertEqualsWithDelta( 1.2, \Camaleaun\Draw\Text::line_height( null, 10 ), 0.0001 );
 		$this->assertEqualsWithDelta( 1.4, \Camaleaun\Draw\Text::line_height( 1.4, 10 ), 0.0001 );
+		$this->assertEqualsWithDelta( 1.4, \Camaleaun\Draw\Text::line_height( '1.4em', 10 ), 0.0001 );
+		$this->assertEqualsWithDelta( 1.0, \Camaleaun\Draw\Text::letter_spacing( '0.05em', 20 ), 0.0001 );
 		$this->assertEqualsWithDelta( 1.5, \Camaleaun\Draw\Text::line_height( '150%', 10 ), 0.0001 );
 		$this->assertEqualsWithDelta( 1.6, \Camaleaun\Draw\Text::line_height( '16px', 10 ), 0.0001 );
 		$this->assertEqualsWithDelta( 2.0, \Camaleaun\Draw\Text::line_height( '2lh', 10 ), 0.0001 );

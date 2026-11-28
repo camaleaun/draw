@@ -357,8 +357,14 @@ final class Clean {
 				}
 				return;
 			}
-			$limit = '%' === $unit || '' === $unit ? $percent : ( 'lh' === $unit ? $max : $other );
-			$low   = 'lh' === $unit ? $min : -$limit;
+			// em is the font size: for a line height a multiplier (as lh), for a letter spacing 100% of the size at most.
+			$multiplier = 'lh' === $unit || ( 'em' === $unit && 'lh' === $key );
+			if ( 'em' === $unit && 'lh' !== $key ) {
+				$limit = $percent / 100;
+			} else {
+				$limit = '%' === $unit || '' === $unit ? $percent : ( $multiplier ? $max : $other );
+			}
+			$low = $multiplier ? $min : -$limit;
 			if ( $n >= $low && $n <= $limit ) {
 				$out[ $key ] = ( round( $n, 3 ) + 0 ) . ( '' === $unit ? '%' : $unit );
 			}
