@@ -244,17 +244,17 @@ final class CleanTest extends TestCase {
 						),
 					),
 				),
-				array( 'clip' => false, 'stroke' => '#000000', 'radius' => array( 8, '25%' ) )
+				array( 'clip' => true, 'stroke' => '#000000', 'radius' => array( 8, '25%' ) )
 			),
 			$notes
 		);
 		$this->assertSame( 'group', $out['type'] );
-		$this->assertFalse( $out['clip'] );
+		$this->assertTrue( $out['clip'] );
 		$this->assertSame( array( 8, '25%' ), $out['radius'] );
 		$this->assertSame( 'parent', $out['children'][0]['layout']['ref'] );
 		$this->assertSame( 'group-1-rect-1', $out['children'][0]['id'] );
 		$out = $this->clean()->element( $this->group( 'group-2' ) );
-		$this->assertArrayNotHasKey( 'clip', $out, 'Clipping is the default: only the exception is written.' );
+		$this->assertArrayNotHasKey( 'clip', $out, 'Not clipping is the default: only the exception is written.' );
 	}
 
 	public function test_a_group_does_not_hold_the_code_the_verification_or_the_signature() {
@@ -318,14 +318,16 @@ final class CleanTest extends TestCase {
 			$this->group(
 				'g',
 				array( array( 'id' => 'a', 'type' => 'rect', 'w' => 10, 'h' => 10, 'grow' => 2 ) ),
-				array( 'arrange' => 'row', 'gap' => 8, 'padding' => 12, 'justify' => 'between', 'align' => 'stretch', 'wrap' => true )
+				array( 'arrange' => 'row', 'gap' => 8, 'padding' => 12, 'justify' => 'between', 'align' => 'stretch' )
 			)
 		);
 		$this->assertSame( 'row', $out['arrange'] );
-		$this->assertSame( array( 8, 12, 'between', 'stretch', true ), array( $out['gap'], $out['padding'], $out['justify'], $out['align'], $out['wrap'] ) );
+		$this->assertSame( array( 8, 12, 'between', 'stretch' ), array( $out['gap'], $out['padding'], $out['justify'], $out['align'] ) );
+		$grid = $this->clean()->element( $this->group( 'g', array(), array( 'arrange' => 'grid', 'columns' => 3, 'gap' => 4 ) ) );
+		$this->assertSame( array( 'grid', 3 ), array( $grid['arrange'], $grid['columns'] ) );
 		$this->assertEquals( 2, $out['children'][0]['grow'] );
-		$free = $this->clean()->element( $this->group( 'g', array(), array( 'arrange' => 'grid', 'gap' => 8, 'justify' => 'center' ) ) );
-		$this->assertArrayNotHasKey( 'arrange', $free, 'There is no grid, and what a free group has no use for is not kept.' );
+		$free = $this->clean()->element( $this->group( 'g', array(), array( 'arrange' => 'diagonal', 'gap' => 8, 'justify' => 'center' ) ) );
+		$this->assertArrayNotHasKey( 'arrange', $free, 'Only row, stack and grid; what a free group has no use for is not kept.' );
 		$this->assertArrayNotHasKey( 'gap', $free );
 		$this->assertArrayNotHasKey( 'justify', $free );
 	}

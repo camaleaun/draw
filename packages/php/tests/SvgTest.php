@@ -78,9 +78,9 @@ final class SvgTest extends TestCase {
 			)
 		);
 		$this->assertStringContainsString( '<rect x="100" y="50" width="200" height="80" fill="#eeeeee"/>', $svg );
-		$this->assertStringContainsString( '<svg x="100" y="50" width="200" height="80" overflow="hidden"><rect x="10" y="5" width="20" height="10" fill="#ff0000"/></svg>', $svg );
-		$open = Svg::element( array( 'type' => 'group', 'x' => 0, 'y' => 0, 'w' => 10, 'h' => 10, 'clip' => false, 'children' => array() ) );
-		$this->assertStringContainsString( 'overflow="visible"', $open );
+		$this->assertStringContainsString( '<svg x="100" y="50" width="200" height="80" overflow="visible"><rect x="10" y="5" width="20" height="10" fill="#ff0000"/></svg>', $svg );
+		$clipped = Svg::element( array( 'type' => 'group', 'x' => 0, 'y' => 0, 'w' => 10, 'h' => 10, 'clip' => true, 'children' => array() ) );
+		$this->assertStringContainsString( 'overflow="hidden"', $clipped );
 	}
 
 	public function test_the_flow_of_a_row_is_the_same_as_the_typescript_one() {
@@ -93,8 +93,8 @@ final class SvgTest extends TestCase {
 		$this->assertEqualsWithDelta( 45.0, $center[0]['y'], 0.001 );
 		$grown = \Camaleaun\Draw\Flow::boxes( array( 'w' => 200, 'h' => 50, 'arrange' => 'row', 'gap' => 10 ), array( array( 'w' => 40, 'h' => 10 ), array( 'w' => 20, 'h' => 10, 'grow' => 1 ), array( 'w' => 20, 'h' => 10, 'grow' => 3 ) ) );
 		$this->assertEquals( array( array( 0, 40 ), array( 50, 45 ), array( 105, 95 ) ), array_map( static function ( $b ) { return array( $b['x'], $b['w'] ); }, $grown ) );
-		$wrapped = \Camaleaun\Draw\Flow::boxes( array( 'w' => 100, 'h' => 200, 'arrange' => 'row', 'gap' => 10, 'wrap' => true ), array( array( 'w' => 60, 'h' => 20 ), array( 'w' => 60, 'h' => 30 ), array( 'w' => 30, 'h' => 10 ) ) );
-		$this->assertEquals( array( array( 0, 0 ), array( 0, 30 ), array( 70, 30 ) ), array_map( static function ( $b ) { return array( $b['x'], $b['y'] ); }, $wrapped ) );
+		$grid = \Camaleaun\Draw\Flow::boxes( array( 'w' => 210, 'h' => 200, 'arrange' => 'grid', 'columns' => 2, 'gap' => 10, 'padding' => 5 ), array( array( 'w' => 1, 'h' => 20 ), array( 'w' => 1, 'h' => 30 ), array( 'w' => 1, 'h' => 10 ) ) );
+		$this->assertEquals( array( array( 5, 5, 95, 20 ), array( 110, 5, 95, 30 ), array( 5, 45, 95, 10 ) ), array_map( 'array_values', $grid ) );
 		$stack = \Camaleaun\Draw\Flow::boxes( array( 'w' => 100, 'h' => 300, 'arrange' => 'stack', 'gap' => 10 ), $items );
 		$this->assertEquals( array( array( 0, 0, 40, 10 ), array( 0, 20, 60, 20 ), array( 0, 50, 20, 30 ) ), array_map( 'array_values', $stack ) );
 	}

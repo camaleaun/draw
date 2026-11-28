@@ -139,12 +139,14 @@ test( 'a row and a stack place what is in them one after the other, justified an
 	assert.deepEqual( stack.map( ( b ) => [ b.x, b.y, b.w, b.h ] ), [ [ 0, 0, 40, 10 ], [ 0, 20, 60, 20 ], [ 0, 50, 20, 30 ] ] );
 } );
 
-test( 'what grows shares the room that is left, and a row may wrap', () => {
+test( 'what grows shares the room that is left, and a grid has columns of one width', () => {
 	const grown = flowBoxes( { w: 200, h: 50, arrange: 'row', gap: 10 }, [ { w: 40, h: 10 }, { w: 20, h: 10, grow: 1 }, { w: 20, h: 10, grow: 3 } ] );
 	// 200 - 40 - 20 - 20 - 2 gaps (20) = 100 left: 25 and 75 more.
 	assert.deepEqual( grown.map( ( b ) => [ b.x, b.w ] ), [ [ 0, 40 ], [ 50, 45 ], [ 105, 95 ] ] );
-	const wrapped = flowBoxes( { w: 100, h: 200, arrange: 'row', gap: 10, wrap: true }, [ { w: 60, h: 20 }, { w: 60, h: 30 }, { w: 30, h: 10 } ] );
-	assert.deepEqual( wrapped.map( ( b ) => [ b.x, b.y ] ), [ [ 0, 0 ], [ 0, 30 ], [ 70, 30 ] ] );
+	const grid = flowBoxes( { w: 210, h: 200, arrange: 'grid', columns: 2, gap: 10, padding: 5 }, [ { w: 1, h: 20 }, { w: 1, h: 30 }, { w: 1, h: 10 } ] );
+	// (210 - 10 padding - 10 gap) / 2 = 95 for each cell; the second row is under the highest of the first (30) and a gap.
+	assert.deepEqual( grid.map( ( b ) => [ b.x, b.y, b.w, b.h ] ), [ [ 5, 5, 95, 20 ], [ 110, 5, 95, 30 ], [ 5, 45, 95, 10 ] ] );
+	assert.deepEqual( flowBoxes( { w: 210, h: 200, arrange: 'grid', columns: 2, align: 'stretch' }, [ { w: 1, h: 20 }, { w: 1, h: 30 } ] ).map( ( b ) => b.h ), [ 30, 30 ] );
 	assert.deepEqual( flowBoxes( { w: 100, h: 100, arrange: 'row' }, [] ), [] );
 } );
 

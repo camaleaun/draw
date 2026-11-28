@@ -132,7 +132,7 @@ final class Svg {
 				$r      = is_array( $el['radius'] ?? null ) ? self::radius( $el['radius'][0] ?? 0, (float) $w, (float) $h ) : 0.0;
 				$inside = sprintf( '<rect x="%s" y="%s" width="%s" height="%s"%s%s/>', self::n( $x ), self::n( $y ), self::n( $w ), self::n( $h ), $r > 0 ? ' rx="' . self::n( $r ) . '"' : '', $attrs );
 				if ( 'group' === $type ) {
-					// What is in a group is placed from its corner (a nested SVG moves the origin there) and clipped to its box, unless the group says not (`clip` false).
+					// What is in a group is placed from its corner (a nested SVG moves the origin there) and shown even where it goes out of its box, unless the group clips (`clip`).
 					$inner = '';
 					if ( isset( $el['inner'] ) && is_string( $el['inner'] ) ) {
 						$inner = $el['inner'];
@@ -141,7 +141,7 @@ final class Svg {
 							$inner .= empty( $child['hidden'] ) ? self::element( $child, $colors, $image ) : '';
 						}
 					}
-					$inside .= sprintf( '<svg x="%s" y="%s" width="%s" height="%s" overflow="%s">%s</svg>', self::n( $x ), self::n( $y ), self::n( $w ), self::n( $h ), false === ( $el['clip'] ?? true ) ? 'visible' : 'hidden', $inner );
+					$inside .= sprintf( '<svg x="%s" y="%s" width="%s" height="%s" overflow="%s">%s</svg>', self::n( $x ), self::n( $y ), self::n( $w ), self::n( $h ), ! empty( $el['clip'] ) ? 'hidden' : 'visible', $inner );
 				}
 				break;
 			case 'ellipse':
@@ -206,7 +206,7 @@ final class Svg {
 	 */
 	public static function place_children( array $group ) {
 		$children = array_values( array_filter( (array) ( $group['children'] ?? array() ), 'is_array' ) );
-		if ( ! in_array( $group['arrange'] ?? '', array( 'row', 'stack' ), true ) ) {
+		if ( ! in_array( $group['arrange'] ?? '', array( 'row', 'stack', 'grid' ), true ) ) {
 			return $children;
 		}
 		$shown = array_keys( array_filter( $children, static function ( $c ) {

@@ -396,15 +396,18 @@ final class Clean {
 					$out['corner'] = $element['corner'];
 				}
 				if ( 'group' === $type ) {
-					// A group clips what is in it to its box, unless it says it does not (only the exception is written).
-					if ( false === ( $element['clip'] ?? true ) ) {
-						$out['clip'] = false;
+					// A group does not clip what is in it (it shows what goes out of its box), unless it says it does (only the exception is written).
+					if ( ! empty( $element['clip'] ) ) {
+						$out['clip'] = true;
 					}
-					// Row or stack (the free group has none: each element has its own place). The gap and the padding are points, the room is as the core's flex layout.
-					if ( in_array( $element['arrange'] ?? '', array( 'row', 'stack' ), true ) ) {
+					// Row, stack or grid (the free group has none: each element has its own place). The gap and the padding are points, the room is as the core's flex layout.
+					if ( in_array( $element['arrange'] ?? '', array( 'row', 'stack', 'grid' ), true ) ) {
 						$out['arrange'] = $element['arrange'];
 						$number( 'gap', 0, 5000 );
 						$number( 'padding', 0, 5000 );
+						if ( 'grid' === $element['arrange'] ) {
+							$number( 'columns', 1, 24 );
+						}
 						foreach ( array(
 							'justify' => array( 'start', 'center', 'end', 'between' ),
 							'align'   => array( 'start', 'center', 'end', 'stretch' ),
@@ -412,9 +415,6 @@ final class Clean {
 							if ( in_array( $element[ $key ] ?? '', $allowed, true ) ) {
 								$out[ $key ] = $element[ $key ];
 							}
-						}
-						if ( ! empty( $element['wrap'] ) ) {
-							$out['wrap'] = true;
 						}
 					}
 					$out['children'] = $this->clean_children( $element['children'] ?? array(), $notes );

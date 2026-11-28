@@ -5,16 +5,17 @@
 | `draw/frame` | The drawing: `width`, `height` (lengths) and `colors` (variable → color) | the shapes |
 | `draw/rect` `draw/ellipse` `draw/line` `draw/path` `draw/image` `draw/text` | a shape, with `x y w h` in points and its own attributes (`fill`, `stroke`, `runs`, `src`…) | — |
 | `draw/svg` | a group drawn as a nested SVG (`vw`, `vh`, and `w`, `h` when it prefers a size) | `draw/svg-path` |
-| `draw/group` | a box like `draw/rect` (`fill`, `stroke`, `strokeWidth`, `radius`, `corner`) that holds other shapes; they are placed from its top-left corner, and clipped to it unless `clip` is `false` | the shapes (any, but `-qr`, `-verification` and a signature; up to 3 groups deep, 300 elements in all) |
+| `draw/group` | a box like `draw/rect` (`fill`, `stroke`, `strokeWidth`, `radius`, `corner`) that holds other shapes; they are placed from its top-left corner, and clipped to it only when `clip` is `true` | the shapes (any, but `-qr`, `-verification` and a signature; up to 3 groups deep, 300 elements in all) |
 | `draw/svg-path` | one filled path: `d`, `fill`, `rule` | — |
 | `events-certificates/certificate` | the root of a certificate (page, colors, palette, sample…) | the shapes, `-qr`, `-verification`, `-back` |
 
 A shape can only be inside a frame, or a group in one (the editor enforces it, and the plugin draws nothing for a shape that is not in one).
 
-**A group can be a row or a stack**, as the core's Group variations are: `arrange` is `row` or `stack` (a free group has none), with `gap` and `padding` in points,
-`justify` (`start`, `center`, `end`, `between`: along the row or the stack), `align` (`start`, `center`, `end`, `stretch`: across it) and `wrap` (what does not fit goes on to a
-new line). What is in it is placed one after the other from the padding, whatever its `x` and `y`; an element with `grow` (a number) shares the room that is left with the others
-that grow, and what is hidden takes no room. The group keeps its own size. There is no grid. `Flow::boxes()` (PHP) and `flowBoxes()` (TypeScript) are the same.
+**A group can be a row, a stack or a grid**, as the core's Group variations are (in the same order: Group, Row, Stack, Grid): `arrange` is `row`, `stack` or `grid` (the Group, the free one, has none), with `gap` and
+`padding` in points, `justify` (`start`, `center`, `end`, `between`: along the row or the stack) and `align` (`start`, `center`, `end`, `stretch`: across it). A grid has `columns` (1 to 24)
+columns of one width. What is in it is placed one after the other from the padding, whatever its `x` and `y`; an element with `grow` (a number) shares the room that is left with the others
+that grow in a row or a stack, and what is hidden takes no room. The group keeps its own size. A group shows what goes out of its box unless it has `"clip":true`.
+`Flow::boxes()` (PHP) and `flowBoxes()` (TypeScript) are the same.
 
 **What is in a group** is placed from the group's top-left corner, and its anchors (`layout`, with `"ref":"parent"`) are to the size of the group:
 `x`, `y`, a length in `%` and "fill" (stretch) are of the group's box, not of the page. A group's elements have ids that follow the group's
