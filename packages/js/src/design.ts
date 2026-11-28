@@ -55,6 +55,11 @@ function blocks( elements: unknown, o: Resolved ): Block[] {
 		}
 		const { type, ...attrs } = toAttrs( element, o.names, o.fields );
 		const kind = String( element.type ?? '' );
+		// A block of its own for a type with a slot (`text:date-of-emission`): the slot is what the block says, so it is not written.
+		const special = element.slot !== undefined && o.blocks[ `${ kind }:${ String( element.slot ) }` ] ? `${ kind }:${ String( element.slot ) }` : kind;
+		if ( special !== kind ) {
+			delete attrs.slot;
+		}
 		let children: Block[] = [];
 		if ( kind === 'group' ) {
 			// What is in a group is its inner blocks (blocks all the way down).
@@ -65,12 +70,12 @@ function blocks( elements: unknown, o: Resolved ): Block[] {
 			delete attrs.paths;
 			children = element.paths.map( ( path ) => ( { name: PATH, attrs: isObject( path ) ? path : {}, children: [] } ) );
 		}
-		if ( ! o.blocks[ kind ] ) {
+		if ( ! o.blocks[ special ] ) {
 			// A type this version does not know keeps its place as a generic block.
 			out.push( { name: o.fallback, attrs: { type: kind, ...attrs }, children: [] } );
 			continue;
 		}
-		out.push( { name: o.blocks[ kind ], attrs, children } );
+		out.push( { name: o.blocks[ special ], attrs, children } );
 	}
 	return out;
 }
@@ -79,8 +84,9 @@ function element( block: Block, o: Resolved ): Attrs {
 	if ( block.name === o.fallback ) {
 		return fromAttrs( block.attrs, o.fields );
 	}
-	const type = Object.keys( o.blocks ).find( ( key ) => o.blocks[ key ] === block.name ) ?? '';
-	const out: Attrs = { type, ...fromAttrs( block.attrs, o.fields, type === 'text' ) };
+	const key = Object.keys( o.blocks ).find( ( name ) => o.blocks[ name ] === block.name ) ?? '';
+	const [ type, ...slot ] = key.split( ':' );
+	const out: Attrs = { type, ...fromAttrs( block.attrs, o.fields, type === 'text' ), ...( slot.length ? { slot: slot.join( ':' ) } : {} ) };
 	if ( type === 'group' ) {
 		out.children = block.children.map( ( child ) => element( child, o ) );
 	}

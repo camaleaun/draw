@@ -155,3 +155,12 @@ test( 'only the fields the host says are fields', () => {
 	const markup = '<!-- wp:events-certificates/certificate {"page":{"w":1,"h":1}} --><!-- wp:draw/text {"id":"t","text":"[[name]] [[other]]"} /--><!-- /wp:events-certificates/certificate -->';
 	assert.deepEqual( fromMarkup( markup, { fields: [ 'name' ] } ).elements[ 0 ].runs, [ { field: 'name' }, { text: ' [[other]]' } ] );
 } );
+
+test( 'a type with a slot can have a block of its own, and the slot is what the block says', () => {
+	const options = { blocks: { 'text:date-of-emission': 'a/date-of-emission' } };
+	const design = { page: { w: 1, h: 1 }, elements: [ { type: 'text', id: 'd', slot: 'date-of-emission', runs: [ { field: 'issued_date' } ] }, { type: 'text', id: 't', slot: 'other', runs: [] } ] };
+	const markup = toMarkup( design, options );
+	assert.ok( markup.includes( 'wp:a/date-of-emission {"id":"d","text":"[[issued_date]]"}' ), markup );
+	assert.ok( markup.includes( '"slot":"other"' ), 'Another slot stays an attribute of the text.' );
+	assert.deepEqual( fromMarkup( markup, options ), design );
+} );

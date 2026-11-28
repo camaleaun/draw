@@ -158,6 +158,21 @@ final class DesignTest extends TestCase {
 		$this->assertSame( array( array( 'field' => 'name' ), array( 'text' => ' [[other]]' ) ), $design['elements'][0]['runs'] );
 	}
 
+	public function test_a_type_with_a_slot_can_have_a_block_of_its_own() {
+		$options = array( 'blocks' => array( 'text:date-of-emission' => 'a/date-of-emission' ) );
+		$design  = array(
+			'page'     => array( 'w' => 1, 'h' => 1 ),
+			'elements' => array(
+				array( 'type' => 'text', 'id' => 'd', 'runs' => array( array( 'field' => 'issued_date' ) ), 'slot' => 'date-of-emission' ),
+				array( 'type' => 'text', 'id' => 't', 'slot' => 'other', 'runs' => array() ),
+			),
+		);
+		$markup  = Design::to_markup( $design, $options );
+		$this->assertStringContainsString( 'wp:a/date-of-emission {"id":"d","text":"[[issued_date]]"}', $markup );
+		$this->assertStringContainsString( '"slot":"other"', $markup, 'Another slot stays an attribute of the text.' );
+		$this->assertSame( $design, Design::from_markup( $markup, $options ) );
+	}
+
 	public function test_markup_that_is_not_balanced_or_too_deep_is_refused() {
 		$this->assertNull( Markup::parse( '<!-- wp:a/b -->' ) );
 		$this->assertNull( Markup::parse( '<!-- wp:a/b --><!-- /wp:a/c -->' ) );

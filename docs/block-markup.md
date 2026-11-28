@@ -70,6 +70,10 @@ The page of a design is kept with lengths with their unit (`width`, `height`, `s
 `11in` by `8.5in`, and points only when neither unit is round. A page written before (a point as `px`, `841.89px`) is still read.
 
 
+## A block for a slot
+
+The `blocks` option may name a block for a type **and slot** (`text:date-of-emission`): an element of that type and slot is written as that block, with no `slot` (the block says it), and read back with it.
+
 ## The text of a text
 
 The `text` attribute of a `draw/text` (and each language of its `variants`) is written as text, the same in the JavaScript and the PHP package

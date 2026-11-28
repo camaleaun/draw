@@ -155,6 +155,11 @@ final class Design {
 			$type  = (string) ( $element['type'] ?? '' );
 			$attrs = Names::to_attrs( $element, $options['names'], $options['fields'] );
 			unset( $attrs['type'] );
+			// A block of its own for a type with a slot (`text:date-of-emission`): the slot is what the block says, so it is not written.
+			$special = isset( $element['slot'] ) && isset( $options['blocks'][ $type . ':' . $element['slot'] ] ) ? $type . ':' . $element['slot'] : $type;
+			if ( $special !== $type ) {
+				unset( $attrs['slot'] );
+			}
 			$children = array();
 			if ( 'group' === $type ) {
 				// What is in a group is its inner blocks (blocks all the way down).
@@ -171,7 +176,7 @@ final class Design {
 					);
 				}
 			}
-			if ( ! isset( $options['blocks'][ $type ] ) ) {
+			if ( ! isset( $options['blocks'][ $special ] ) ) {
 				// A type this version does not know keeps its place as a generic block, so nothing is lost in the trip.
 				$blocks[] = array(
 					'name'     => $options['fallback'],
@@ -181,7 +186,7 @@ final class Design {
 				continue;
 			}
 			$blocks[] = array(
-				'name'     => $options['blocks'][ $type ],
+				'name'     => $options['blocks'][ $special ],
 				'attrs'    => $attrs,
 				'children' => $children,
 			);
@@ -217,8 +222,13 @@ final class Design {
 		if ( $options['fallback'] === $block['name'] ) {
 			return Names::from_attrs( $block['attrs'], $options['fields'] );
 		}
-		$type    = (string) array_search( $block['name'], $options['blocks'], true );
+		$key     = (string) array_search( $block['name'], $options['blocks'], true );
+		$parts   = explode( ':', $key, 2 );
+		$type    = $parts[0];
 		$element = array( 'type' => $type ) + Names::from_attrs( $block['attrs'], $options['fields'], 'text' === $type );
+		if ( isset( $parts[1] ) ) {
+			$element['slot'] = $parts[1];
+		}
 		if ( 'group' === $type ) {
 			$element['children'] = self::elements( $block['children'], $options );
 		}
