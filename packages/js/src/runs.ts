@@ -3,7 +3,7 @@
  * fixtures: `packages/fixtures/runs.json`).
  *
  *   - `[key]` or `[key:format]` is a field (only a key the host says is a field, when it says; `{key}`, what files wrote before, is read as one too);
- *   - `*…*` is bold (a run of asterisks is one switch, so the `**…**` of before is bold), `_…_` is italic (not inside a word: `snake_case` is text);
+ *   - `**…**` is bold and `*…*` italic, as in markdown (`***…***` is both);
  *   - a switch with no partner is text (`5 * 3`), a line break is a line break;
  *   - `\` before one of `\ * _ [ ] {` makes it text.
  *
@@ -16,7 +16,6 @@ export const MAX_TEXT = 16000;
 
 const KEY = /^[A-Za-z0-9_-]{1,40}$/;
 const ESCAPABLE = '\\*_[]{';
-const word = ( c: string | undefined ) => c !== undefined && /[\p{L}\p{N}]/u.test( c );
 
 type Token = { kind: 'text'; text: string } | { kind: 'field'; field: string; format?: string; raw: string } | { kind: 'b' | 'i'; raw: string; on?: boolean };
 
@@ -43,10 +42,20 @@ function tokens( source: string, fields?: string[] ): Token[] {
 			while ( chars[ n + 1 ] === '*' ) {
 				n++;
 			}
-			out.push( { kind: 'b', raw: chars.slice( i, n + 1 ).join( '' ) } );
+			const count = n - i + 1;
+			if ( count > 3 ) {
+				// Four or more in a row are not a switch.
+				push( chars.slice( i, n + 1 ).join( '' ) );
+			} else {
+				// One is italic, two bold, three both.
+				if ( count !== 1 ) {
+					out.push( { kind: 'b', raw: '**' } );
+				}
+				if ( count !== 2 ) {
+					out.push( { kind: 'i', raw: '*' } );
+				}
+			}
 			i = n;
-		} else if ( c === '_' && chars[ i - 1 ] !== '_' && chars[ i + 1 ] !== '_' ) {
-			out.push( { kind: 'i', raw: '_' } );
 		} else if ( c === '[' || c === '{' ) {
 			const end = chars.indexOf( c === '[' ? ']' : '}', i + 1 );
 			const body = end > i ? chars.slice( i + 1, end ).join( '' ) : '';
@@ -64,16 +73,8 @@ function tokens( source: string, fields?: string[] ): Token[] {
 	return out;
 }
 
-/** Decides which switches are real: they pair in order; the rest (and a `_` inside a word) are text. */
+/** Decides which switches are real: they pair in order; the one left over is text. */
 function pair( list: Token[] ): void {
-	const before = ( index: number ) => {
-		const t = list[ index - 1 ];
-		return t && t.kind === 'text' ? Array.from( t.text ).pop() : undefined;
-	};
-	const after = ( index: number ) => {
-		const t = list[ index + 1 ];
-		return t && t.kind === 'text' ? Array.from( t.text )[ 0 ] : undefined;
-	};
 	for ( const kind of [ 'b', 'i' ] as const ) {
 		let open = -1;
 		list.forEach( ( t, index ) => {
@@ -81,12 +82,8 @@ function pair( list: Token[] ): void {
 				return;
 			}
 			if ( open < 0 ) {
-				// An italic opens before a word, not inside it.
-				if ( kind === 'i' && word( before( index ) ) ) {
-					return;
-				}
 				open = index;
-			} else if ( kind === 'b' || ! word( after( index ) ) ) {
+			} else {
 				( list[ open ] as { on?: boolean } ).on = true;
 				( t as { on?: boolean } ).on = true;
 				open = -1;
@@ -161,27 +158,24 @@ export function runsToText( runs: Run[] ): string {
 		const ni = !! run.i;
 		// Closes before it opens.
 		if ( i && ! ni ) {
-			out += '_';
+			out += '*';
 		}
 		if ( b && ! nb ) {
-			out += '*';
+			out += '**';
 		}
 		if ( ! b && nb ) {
-			out += '*';
+			out += '**';
 		}
 		if ( ! i && ni ) {
-			out += '_';
+			out += '*';
 		}
 		b = nb;
 		i = ni;
 		if ( 'field' in run ) {
 			out += `[${ run.field }${ run.format ? ':' + run.format : '' }]`;
 		} else {
-			const chars = Array.from( run.text );
-			out += chars
-				.map( ( c, n ) => ( c === '_' ? ( word( chars[ n - 1 ] ) && word( chars[ n + 1 ] ) ? '_' : '\\_' ) : '\\*[{'.includes( c ) ? `\\${ c }` : c ) )
-				.join( '' );
+			out += run.text.replace( /[\\*[{]/g, ( c ) => `\\${ c }` );
 		}
 	}
-	return out + ( i ? '_' : '' ) + ( b ? '*' : '' );
+	return out + ( i ? '*' : '' ) + ( b ? '**' : '' );
 }

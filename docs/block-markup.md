@@ -80,6 +80,6 @@ Dear [name], welcome to *[event]*, held in _[location]_.
 ```
 
 - `[key]` and `[key:format]` are fields; with the `fields` option only those keys are (the others stay text). `{key}`, what files wrote before, is read as a field too.
-- `*…*` is bold (a run of asterisks is one switch, so `**…**` of before is bold) and `_…_` is italic, not inside a word (`snake_case` is text).
+- `**…**` is bold and `*…*` italic, as in markdown (`***…***` is both).
 - A switch with no partner (`5 * 3`) is text; a line break is a line break; a backslash before one of `\ * _ [ ] {` makes it text.
 - A file of before, with `runs` (and `bold` and `italic`), is read the same.

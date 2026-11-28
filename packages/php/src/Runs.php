@@ -4,7 +4,7 @@
  * same fixtures: `packages/fixtures/runs.json`).
  *
  *   - `[key]` or `[key:format]` is a field (only a key the host says is a field, when it says; `{key}`, what files wrote before, is read as one too);
- *   - `*…*` is bold (a run of asterisks is one switch, so the `**…**` of before is bold), `_…_` is italic (not inside a word: `snake_case` is text);
+ *   - `**…**` is bold and `*…*` italic, as in markdown (`***…***` is both);
  *   - a switch with no partner is text (`5 * 3`), a line break is a line break;
  *   - `\` before one of `\ * _ [ ] {` makes it text.
  *
@@ -29,16 +29,6 @@ final class Runs {
 	const KEY = '/^[A-Za-z0-9_-]{1,40}$/';
 
 	const ESCAPABLE = '\\*_[]{';
-
-	/**
-	 * Whether a character is part of a word.
-	 *
-	 * @param string|null $char Character.
-	 * @return bool
-	 */
-	private static function word( $char ) {
-		return null !== $char && 1 === preg_match( '/^[\p{L}\p{N}]$/u', $char );
-	}
 
 	/**
 	 * Whether a key is a field: any valid key when the host gave no list.
@@ -93,16 +83,26 @@ final class Runs {
 				while ( ( $chars[ $n + 1 ] ?? '' ) === '*' ) {
 					++$n;
 				}
-				$out[] = array(
-					'kind' => 'b',
-					'raw'  => implode( '', array_slice( $chars, $i, $n - $i + 1 ) ),
-				);
-				$i     = $n;
-			} elseif ( '_' === $c && ( $chars[ $i - 1 ] ?? '' ) !== '_' && ( $chars[ $i + 1 ] ?? '' ) !== '_' ) {
-				$out[] = array(
-					'kind' => 'i',
-					'raw'  => '_',
-				);
+				$stars = $n - $i + 1;
+				if ( $stars > 3 ) {
+					// Four or more in a row are not a switch.
+					$push( str_repeat( '*', $stars ) );
+				} else {
+					// One is italic, two bold, three both.
+					if ( 1 !== $stars ) {
+						$out[] = array(
+							'kind' => 'b',
+							'raw'  => '**',
+						);
+					}
+					if ( 2 !== $stars ) {
+						$out[] = array(
+							'kind' => 'i',
+							'raw'  => '*',
+						);
+					}
+				}
+				$i = $n;
 			} elseif ( '[' === $c || '{' === $c ) {
 				$close = array_search( '[' === $c ? ']' : '}', array_slice( $chars, $i + 1 ), true );
 				$end   = false === $close ? -1 : $i + 1 + $close;
@@ -132,28 +132,12 @@ final class Runs {
 	}
 
 	/**
-	 * Decides which switches are real: they pair in order; the rest (and a `_` inside a word) are text.
+	 * Decides which switches are real: they pair in order; the one left over is text.
 	 *
 	 * @param array<int, array<string, mixed>> $list Tokens.
 	 * @return array<int, array<string, mixed>>
 	 */
 	private static function pair( array $list ) {
-		$before = static function ( $index ) use ( &$list ) {
-			$t = $list[ $index - 1 ] ?? null;
-			if ( ! $t || 'text' !== $t['kind'] ) {
-				return null;
-			}
-			$chars = self::chars( $t['text'] );
-			return $chars ? end( $chars ) : null;
-		};
-		$after  = static function ( $index ) use ( &$list ) {
-			$t = $list[ $index + 1 ] ?? null;
-			if ( ! $t || 'text' !== $t['kind'] ) {
-				return null;
-			}
-			$chars = self::chars( $t['text'] );
-			return $chars ? $chars[0] : null;
-		};
 		foreach ( array( 'b', 'i' ) as $kind ) {
 			$open = -1;
 			foreach ( $list as $index => $t ) {
@@ -161,15 +145,11 @@ final class Runs {
 					continue;
 				}
 				if ( $open < 0 ) {
-					// An italic opens before a word, not inside it.
-					if ( 'i' === $kind && self::word( $before( $index ) ) ) {
-						continue;
-					}
 					$open = $index;
-				} elseif ( 'b' === $kind || ! self::word( $after( $index ) ) ) {
-					$list[ $open ]['on'] = true;
+				} else {
+					$list[ $open ]['on']  = true;
 					$list[ $index ]['on'] = true;
-					$open                = -1;
+					$open                 = -1;
 				}
 			}
 		}
@@ -282,13 +262,13 @@ final class Runs {
 			$ni = ! empty( $run['i'] );
 			// Closes before it opens.
 			if ( $i && ! $ni ) {
-				$out .= '_';
-			}
-			if ( $b !== $nb ) {
 				$out .= '*';
 			}
+			if ( $b !== $nb ) {
+				$out .= '**';
+			}
 			if ( ! $i && $ni ) {
-				$out .= '_';
+				$out .= '*';
 			}
 			$b = $nb;
 			$i = $ni;
@@ -296,18 +276,9 @@ final class Runs {
 				$out .= '[' . $run['field'] . ( isset( $run['format'] ) ? ':' . $run['format'] : '' ) . ']';
 				continue;
 			}
-			$chars = self::chars( $run['text'] );
-			foreach ( $chars as $n => $c ) {
-				if ( '_' === $c ) {
-					$out .= self::word( $chars[ $n - 1 ] ?? null ) && self::word( $chars[ $n + 1 ] ?? null ) ? '_' : '\\_';
-				} elseif ( false !== strpos( '\\*[{', $c ) ) {
-					$out .= '\\' . $c;
-				} else {
-					$out .= $c;
-				}
-			}
+			$out .= preg_replace( '/[\\\\*\[{]/', '\\\\$0', $run['text'] );
 		}
 
-		return $out . ( $i ? '_' : '' ) . ( $b ? '*' : '' );
+		return $out . ( $i ? '*' : '' ) . ( $b ? '**' : '' );
 	}
 }
