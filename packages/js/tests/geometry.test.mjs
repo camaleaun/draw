@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { placeChildren, flowBoxes, radiusPt, pageSize, parseLen, isLen, refBox, resolve, placed, layoutFrom, lockedRatio, rectPath, svgCodeAllowed, isPathData, isFill } from '../dist/index.js';
+import { lineHeightFactor, letterSpacingPt, placeChildren, flowBoxes, radiusPt, pageSize, parseLen, isLen, refBox, resolve, placed, layoutFrom, lockedRatio, rectPath, svgCodeAllowed, isPathData, isFill } from '../dist/index.js';
 
 const page = { w: 800, h: 600, safe: 28.3465 };
 
@@ -181,3 +181,19 @@ test( 'a drawing with no size on an axis keeps it so when it is moved, and has o
 	assert.equal( resized.layout.h.size, '48pt', 'the width was said' );
 	assert.equal( resized.layout.v.size, undefined, 'the height was not' );
 } );
+
+test( 'a line height and a letter spacing are read with their unit, and a number is what files wrote before', () => {
+	assert.equal( lineHeightFactor( undefined, 10 ), 1.2 );
+	assert.equal( lineHeightFactor( 1.4, 10 ), 1.4 );
+	assert.equal( lineHeightFactor( '150%', 10 ), 1.5 );
+	assert.equal( lineHeightFactor( '16px', 10 ), 1.6 );
+	assert.equal( lineHeightFactor( '2lh', 10 ), 2 );
+	assert.equal( lineHeightFactor( 'nope', 10 ), 1.2 );
+	assert.equal( letterSpacingPt( 0.5, 10 ), 0.5, 'a number is points' );
+	assert.equal( letterSpacingPt( '5%', 10 ), 0.5 );
+	assert.equal( letterSpacingPt( '5', 10 ), 0.5, 'no unit: a percentage' );
+	assert.equal( letterSpacingPt( '3pt', 10 ), 3 );
+	assert.ok( Math.abs( letterSpacingPt( '10mm', 10 ) - 28.3465 ) < 0.0001 );
+	assert.equal( letterSpacingPt( undefined, 10 ), 0 );
+} );
+

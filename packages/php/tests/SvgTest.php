@@ -119,4 +119,17 @@ final class SvgTest extends TestCase {
 		$this->assertStringContainsString( '<rect x="0" y="0" width="40" height="10" fill="#111111"/>', $svg );
 		$this->assertStringContainsString( '<rect x="50" y="0" width="30" height="10" fill="#333333"/>', $svg );
 	}
+
+	public function test_a_line_height_and_a_letter_spacing_are_read_with_their_unit() {
+		$this->assertEqualsWithDelta( 1.2, \Camaleaun\Draw\Text::line_height( null, 10 ), 0.0001 );
+		$this->assertEqualsWithDelta( 1.4, \Camaleaun\Draw\Text::line_height( 1.4, 10 ), 0.0001 );
+		$this->assertEqualsWithDelta( 1.5, \Camaleaun\Draw\Text::line_height( '150%', 10 ), 0.0001 );
+		$this->assertEqualsWithDelta( 1.6, \Camaleaun\Draw\Text::line_height( '16px', 10 ), 0.0001 );
+		$this->assertEqualsWithDelta( 2.0, \Camaleaun\Draw\Text::line_height( '2lh', 10 ), 0.0001 );
+		$this->assertEqualsWithDelta( 0.5, \Camaleaun\Draw\Text::letter_spacing( 0.5, 10 ), 0.0001, 'A number is points.' );
+		$this->assertEqualsWithDelta( 0.5, \Camaleaun\Draw\Text::letter_spacing( '5%', 10 ), 0.0001, 'A percentage of the size.' );
+		$this->assertEqualsWithDelta( 0.5, \Camaleaun\Draw\Text::letter_spacing( '5', 10 ), 0.0001, 'With no unit, a percentage.' );
+		$this->assertEqualsWithDelta( 3.0, \Camaleaun\Draw\Text::letter_spacing( '3pt', 10 ), 0.0001 );
+		$this->assertEqualsWithDelta( 28.3465, \Camaleaun\Draw\Text::letter_spacing( '10mm', 10 ), 0.0001 );
+	}
 }

@@ -336,6 +336,25 @@ final class Clean {
 				$out[ $key ] = $this->clean_color( $element[ $key ], $with_variable );
 			}
 		};
+		// A line height or a letter spacing: a number (what files wrote before units) in its range, or a length with a unit (Text): % of the font size up to `$percent`,
+		// lh as a multiplier up to `$max`, any other unit up to `$other` points.
+		$length = function ( $key, $min, $max, $percent, $other ) use ( $element, &$out ) {
+			$given = $element[ $key ] ?? null;
+			$parsed = Text::parse( $given );
+			if ( null === $parsed ) {
+				$value = $this->clean_number( $given, $min, $max );
+				if ( null !== $value ) {
+					$out[ $key ] = $value;
+				}
+				return;
+			}
+			list( $n, $unit ) = $parsed;
+			$limit            = '%' === $unit || '' === $unit ? $percent : ( 'lh' === $unit ? $max : $other );
+			$low              = 'lh' === $unit ? $min : -$limit;
+			if ( $n >= $low && $n <= $limit ) {
+				$out[ $key ] = ( round( $n, 3 ) + 0 ) . ( '' === $unit ? '%' : $unit );
+			}
+		};
 		$number = function ( $key, $min, $max ) use ( $element, &$out ) {
 			$value = $this->clean_number( $element[ $key ] ?? null, $min, $max );
 			if ( null !== $value ) {
@@ -367,8 +386,8 @@ final class Clean {
 				if ( in_array( $element['align'] ?? '', array( 'left', 'center', 'right' ), true ) ) {
 					$out['align'] = $element['align'];
 				}
-				$number( 'lh', 0, 10 );
-				$number( 'ls', -50, 100 );
+				$length( 'lh', 0, 10, 1000, 500 );
+				$length( 'ls', -50, 100, 100, 100 );
 				$number( 'min', 1, 1000 );
 				foreach ( array( 'upper', 'fit' ) as $flag ) {
 					if ( ! empty( $element[ $flag ] ) ) {

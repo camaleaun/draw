@@ -331,4 +331,44 @@ final class CleanTest extends TestCase {
 		$this->assertArrayNotHasKey( 'gap', $free );
 		$this->assertArrayNotHasKey( 'justify', $free );
 	}
+
+	public function test_a_line_height_and_a_letter_spacing_may_have_a_unit() {
+		$out = $this->clean()->element(
+			array(
+				'id'   => 'a',
+				'type' => 'text',
+				'lh'   => '120%',
+				'ls'   => '2px',
+			)
+		);
+		$this->assertSame( array( '120%', '2px' ), array( $out['lh'], $out['ls'] ) );
+		$old = $this->clean()->element(
+			array(
+				'id'   => 'b',
+				'type' => 'text',
+				'lh'   => 1.4,
+				'ls'   => 0.5,
+			)
+		);
+		$this->assertSame( array( 1.4, 0.5 ), array( $old['lh'], $old['ls'] ), 'The numbers of earlier files stay numbers.' );
+		$bare = $this->clean()->element(
+			array(
+				'id'   => 'c',
+				'type' => 'text',
+				'ls'   => '5',
+				'lh'   => '1.5lh',
+			)
+		);
+		$this->assertSame( array( '5%', '1.5lh' ), array( $bare['ls'], $bare['lh'] ), 'A spacing with no unit is a percentage.' );
+		$bad = $this->clean()->element(
+			array(
+				'id'   => 'd',
+				'type' => 'text',
+				'lh'   => '999999px',
+				'ls'   => 'calc(1px)',
+			)
+		);
+		$this->assertArrayNotHasKey( 'lh', $bad, 'Out of range.' );
+		$this->assertArrayNotHasKey( 'ls', $bad, 'Not a length.' );
+	}
 }
