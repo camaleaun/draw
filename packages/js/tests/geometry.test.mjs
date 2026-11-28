@@ -170,3 +170,14 @@ test( 'a drawing that says no size on an axis is as big as its viewBox', () => {
 	const other = resolve( { type: 'rect', vw: 24, layout: { h: { mode: 'start', start: '0pt' }, v: { mode: 'start', start: '0pt' } } }, page );
 	assert.equal( other.w, 0, 'only a drawing has a size of its own' );
 } );
+
+test( 'a drawing with no size on an axis keeps it so when it is moved, and has one once it is resized', () => {
+	const svg = { type: 'svg', vw: 24, vh: 12, layout: { h: { mode: 'start', start: '10pt' }, v: { mode: 'start', start: '20pt' } } };
+	const moved = placed( svg, { x: 30, y: 40, w: 24, h: 12 }, page );
+	assert.deepEqual( [ moved.layout.h.start, moved.layout.v.start ], [ '30pt', '40pt' ] );
+	assert.equal( moved.layout.h.size, undefined, 'still no size' );
+	assert.equal( moved.layout.v.size, undefined );
+	const resized = placed( svg, { x: 10, y: 20, w: 48, h: 12 }, page );
+	assert.equal( resized.layout.h.size, '48pt', 'the width was said' );
+	assert.equal( resized.layout.v.size, undefined, 'the height was not' );
+} );

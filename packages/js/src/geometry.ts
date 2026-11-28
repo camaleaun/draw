@@ -204,7 +204,19 @@ export function placed< T extends Placeable >( stored: T, b: Box, page: PageBox,
 	if ( stored.type === 'line' ) {
 		return stored;
 	}
-	return layout ? { ...stored, layout: layoutFrom( layout, b, page, parent ) } : { ...stored, x: b.x, y: b.y, w: b.w, h: b.h };
+	if ( ! layout ) {
+		return { ...stored, x: b.x, y: b.y, w: b.w, h: b.h };
+	}
+	const next = layoutFrom( layout, b, page, parent );
+	// A drawing that says no size on an axis keeps it so when it is only moved: the size it has is still its viewBox's.
+	if ( stored.type === 'svg' ) {
+		( [ [ 'h', 'w', stored.vw ], [ 'v', 'h', stored.vh ] ] as const ).forEach( ( [ axis, side, own ] ) => {
+			if ( layout[ axis ].size === undefined && layout[ axis ].mode !== 'stretch' && own && Math.abs( b[ side ] - own ) < 0.005 ) {
+				delete next[ axis ].size;
+			}
+		} );
+	}
+	return { ...stored, layout: next };
 }
 
 
