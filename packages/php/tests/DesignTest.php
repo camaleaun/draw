@@ -57,6 +57,39 @@ final class DesignTest extends TestCase {
 		$this->assertSame( json_encode( $this->canon( $design ) ), json_encode( $this->canon( Design::from_markup( $markup ) ) ) );
 	}
 
+	public function written_before() {
+		$out = array();
+		foreach ( glob( __DIR__ . '/../../../tests/golden/markup/*.old.html' ) as $file ) {
+			$out[ basename( $file ) ] = array( $file );
+		}
+		return $out;
+	}
+
+	/**
+	 * The markup 0.25 wrote, kept in files: every later version reads it back to the same design.
+	 *
+	 * @dataProvider written_before
+	 */
+	public function test_the_markup_0_25_wrote_is_read_back_to_its_design( $file ) {
+		$design = json_decode( file_get_contents( str_replace( array( '/markup/', '.old.html' ), array( '/', '.json' ), $file ) ), true );
+		$unnamed = static function ( $sheet ) {
+			foreach ( $sheet['elements'] ?? array() as $i => $element ) {
+				if ( isset( $element['name'] ) && Names::default_name( $element ) === $element['name'] ) {
+					unset( $sheet['elements'][ $i ]['name'] );
+				}
+			}
+
+			return $sheet;
+		};
+		$design = $unnamed( $design );
+		if ( isset( $design['back'] ) ) {
+			$design['back'] = $unnamed( $design['back'] );
+		}
+		$markup = file_get_contents( $file );
+		$this->assertTrue( Design::is_markup( $markup ) );
+		$this->assertSame( json_encode( $this->canon( $design ) ), json_encode( $this->canon( Design::from_markup( $markup ) ) ) );
+	}
+
 	public function test_an_svg_keeps_its_paths_as_inner_blocks() {
 		$markup = Design::to_markup(
 			array(

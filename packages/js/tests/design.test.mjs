@@ -19,6 +19,16 @@ for ( const file of readdirSync( golden ).filter( ( name ) => name.endsWith( '.j
 	} );
 }
 
+// The markup as 0.25 wrote it, kept in files: every later version reads it back to the same design (the formats that came after are read with the same readers).
+for ( const file of readdirSync( path.join( golden, 'markup' ) ).filter( ( name ) => name.endsWith( '.old.html' ) ) ) {
+	test( `the markup 0.25 wrote is read back to its design: ${ file }`, () => {
+		const design = JSON.parse( readFileSync( path.join( golden, file.replace( '.old.html', '.json' ) ), 'utf8' ) );
+		const markup = readFileSync( path.join( golden, 'markup', file ), 'utf8' );
+		assert.ok( isMarkup( markup ) );
+		assert.deepEqual( canon( fromMarkup( markup ) ), canon( unnamed( design ) ) );
+	} );
+}
+
 test( 'an svg keeps its paths as inner blocks', () => {
 	const markup = toMarkup( { page: { w: 10, h: 10 }, elements: [ { type: 'svg', id: 's', vw: 24, vh: 24, paths: [ { d: 'M0 0L1 1Z', fill: '$text' }, { d: 'M2 2L3 3Z' } ] } ] } );
 	assert.equal( ( markup.match( /wp:draw\/svg-path/g ) || [] ).length, 2 );

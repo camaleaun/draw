@@ -1,0 +1,281 @@
+{
+	"page": {
+		"w": 841.89,
+		"h": 595.28,
+		"bg": "$background",
+		"safe": 28.35,
+		"bleed": 0
+	},
+	"colors": {
+		"background": {
+			"name": "Background",
+			"light": "#ffffff",
+			"dark": "#14161A"
+		},
+		"text": {
+			"name": "Text",
+			"light": "#1B1F2E",
+			"dark": "#F4F4F5"
+		},
+		"primary": {
+			"name": "Primary",
+			"light": "#3858e9",
+			"dark": "#7b90ff"
+		}
+	},
+	"elements": [
+		{
+			"id": "body",
+			"name": "Body",
+			"type": "text",
+			"x": 0,
+			"y": 0,
+			"w": 473.5,
+			"h": 54,
+			"locked": true,
+			"layout": {
+				"h": {
+					"mode": "stretch",
+					"start": "184.2pt",
+					"end": "184.19pt"
+				},
+				"v": {
+					"mode": "stretch",
+					"start": "357.39pt",
+					"end": "183.89pt"
+				},
+				"ref": "page"
+			},
+			"align": "center",
+			"runs": [
+				{
+					"text": "This certificate is presented for actively participating in the "
+				},
+				{
+					"field": "event"
+				},
+				{
+					"text": " event, held in "
+				},
+				{
+					"field": "location",
+					"b": true
+				},
+				{
+					"text": ", celebrating collaboration."
+				}
+			],
+			"variants": {
+				"pt_BR": [
+					{
+						"text": "Este certificado é concedido pela participação ativa no evento "
+					},
+					{
+						"field": "event"
+					},
+					{
+						"text": ", realizado em "
+					},
+					{
+						"field": "location",
+						"b": true
+					},
+					{
+						"text": "."
+					}
+				],
+				"es_ES": [
+					{
+						"text": "Este certificado se otorga por la participación en "
+					},
+					{
+						"field": "event"
+					}
+				]
+			},
+			"font": "Inter",
+			"weight": 400,
+			"size": 13,
+			"color": "#1a1919",
+			"lh": "1.4lh",
+			"ls": "-0.02em"
+		},
+		{
+			"id": "title",
+			"type": "text",
+			"x": 40,
+			"y": 80,
+			"w": 300,
+			"h": 30,
+			"runs": [
+				{
+					"text": "Title",
+					"i": true
+				}
+			],
+			"font": "Lora",
+			"weight": 600,
+			"size": "4.4mm",
+			"color": "$primary",
+			"lh": 1.2,
+			"ls": 2,
+			"upper": true,
+			"align": "left",
+			"fit": true,
+			"min": 9,
+			"opacity": 0.9,
+			"rotation": 3,
+			"hidden": true
+		},
+		{
+			"id": "box",
+			"type": "rect",
+			"x": 10,
+			"y": 10,
+			"w": 100,
+			"h": 50,
+			"fill": "$primary",
+			"stroke": "$text",
+			"strokeWidth": 2,
+			"radius": [
+				8,
+				8,
+				8,
+				8
+			],
+			"corner": "round",
+			"lock": 1.5
+		},
+		{
+			"id": "pill",
+			"type": "rect",
+			"x": 120,
+			"y": 10,
+			"w": 100,
+			"h": 50,
+			"fill": "#ffffff",
+			"radius": [
+				"25%",
+				0,
+				"25%",
+				0
+			]
+		},
+		{
+			"id": "dot",
+			"type": "ellipse",
+			"x": 230,
+			"y": 10,
+			"w": 40,
+			"h": 40,
+			"fill": "$text",
+			"stroke": "$primary",
+			"strokeWidth": 1.5
+		},
+		{
+			"id": "rule",
+			"type": "line",
+			"x1": 10,
+			"y1": 200,
+			"x2": 300,
+			"y2": 200,
+			"stroke": "$text",
+			"strokeWidth": 0.75,
+			"dash": "dashed"
+		},
+		{
+			"id": "photo",
+			"type": "image",
+			"x": 20,
+			"y": 220,
+			"w": 120,
+			"h": 80,
+			"src": "https://example.test/uploads/a.png",
+			"alt": "A photo",
+			"attachment": 7,
+			"fit": "cover",
+			"ratio": "4/3"
+		},
+		{
+			"id": "group-8",
+			"type": "group",
+			"x": 300,
+			"y": 220,
+			"w": 240,
+			"h": 60,
+			"arrange": "row",
+			"gap": 8,
+			"padding": 12,
+			"justify": "between",
+			"align": "center",
+			"clip": true,
+			"children": [
+				{
+					"id": "group-8-text-1",
+					"type": "text",
+					"x": 0,
+					"y": 0,
+					"w": 80,
+					"h": 20,
+					"runs": [
+						{
+							"text": "One"
+						}
+					],
+					"font": "Inter",
+					"weight": 500,
+					"size": 11,
+					"color": "$text",
+					"grow": 1,
+					"layout": {
+						"h": {
+							"mode": "start",
+							"start": "4pt",
+							"size": "80pt"
+						},
+						"v": {
+							"mode": "start",
+							"start": "0pt",
+							"size": "20pt"
+						},
+						"ref": "parent"
+					}
+				},
+				{
+					"id": "group-8-rect-2",
+					"type": "rect",
+					"x": 0,
+					"y": 0,
+					"w": 20,
+					"h": 20,
+					"fill": "$primary"
+				}
+			]
+		},
+		{
+			"id": "verification",
+			"type": "verification",
+			"slot": "verification",
+			"x": 600,
+			"y": 500,
+			"w": 220,
+			"h": 60,
+			"arrange": "stack",
+			"align": "center",
+			"qr": 44,
+			"gap": 2,
+			"font": "Inter",
+			"code": {
+				"size": 6.5,
+				"weight": 600,
+				"color": "$text"
+			},
+			"hint": {
+				"size": 6,
+				"weight": 400,
+				"color": "$text",
+				"lh": 1.3
+			}
+		}
+	]
+}
