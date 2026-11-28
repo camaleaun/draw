@@ -389,4 +389,37 @@ final class CleanTest extends TestCase {
 		$this->assertArrayNotHasKey( 'lh', $bad, 'Out of range.' );
 		$this->assertArrayNotHasKey( 'ls', $bad, 'Not a length.' );
 	}
+
+	/**
+	 * The unit a margin was written in is the unit it is kept in: a safe margin of 24pt is not turned into 8.47mm by saving.
+	 */
+	public function test_a_margin_keeps_the_unit_it_was_written_in() {
+		$cases = array(
+			'9.5mm'  => '9.5mm',
+			'24pt'   => '24pt',
+			'0.4in'  => '0.4in',
+			'1.25cm' => '1.25cm',
+			'12px'   => '12px',
+			'8.47mm' => '8.47mm',
+		);
+		foreach ( $cases as $written => $kept ) {
+			$design = array(
+				'page'     => array( 'width' => '297mm', 'height' => '210mm', 'safe' => $written, 'bleed' => $written ),
+				'elements' => array( array( 'type' => 'rect', 'x' => 0, 'y' => 0, 'w' => 10, 'h' => 10 ) ),
+			);
+			$clean  = $this->clean()->design( $design );
+			$this->assertSame( $kept, $clean['page']['safe'], "safe $written" );
+			$this->assertSame( $kept, $clean['page']['bleed'], "bleed $written" );
+			$this->assertArrayNotHasKey( 'safeUnit', $clean['page'], 'The unit is in the length, not beside it.' );
+		}
+		// What has no unit is in millimeters, as it always was, and none is written for no margin.
+		$none = $this->clean()->design( array( 'page' => array( 'width' => '297mm', 'height' => '210mm' ), 'elements' => array( array( 'type' => 'rect', 'x' => 0, 'y' => 0, 'w' => 10, 'h' => 10 ) ) ) );
+		$this->assertArrayNotHasKey( 'safe', $none['page'] );
+		// The model form keeps the unit beside the number, as the editor's does.
+		$points = Page::in_points( array( 'page' => array( 'width' => '297mm', 'height' => '210mm', 'safe' => '24pt' ) ) )['page'];
+		$this->assertSame( 24.0, (float) $points['safe'] );
+		$this->assertSame( 'pt', $points['safeUnit'] );
+		$this->assertArrayNotHasKey( 'bleedUnit', $points );
+		$this->assertSame( '24pt', Page::stored( $points )['safe'] );
+	}
 }

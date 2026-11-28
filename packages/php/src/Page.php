@@ -75,6 +75,13 @@ final class Page {
 		$out['bg']      = $page['backgroundColor'] ?? '$background';
 		$out['safe']    = self::length( $page['safe'] ?? 0 );
 		$out['bleed']   = self::length( $page['bleed'] ?? 0 );
+		// The unit a margin was written in (anything but millimeters, the one that is not said) is kept beside its number, as the editors' model does.
+		foreach ( array( 'safe', 'bleed' ) as $key ) {
+			$unit = self::unit_of( $page[ $key ] ?? '' );
+			if ( '' !== $unit && 'mm' !== $unit ) {
+				$out[ $key . 'Unit' ] = $unit;
+			}
+		}
 		$design['page'] = $out;
 
 		return $design;
@@ -135,14 +142,37 @@ final class Page {
 			'height'          => $size[1],
 			'backgroundColor' => $page['bg'] ?? '$background',
 		);
-		// No safe margin and no bleed when there is none.
-		if ( (float) ( $page['safe'] ?? 0 ) > 0 ) {
-			$out['safe'] = $n( (float) $page['safe'] / self::UNITS['mm'] ) . 'mm';
-		}
-		if ( (float) ( $page['bleed'] ?? 0 ) > 0 ) {
-			$out['bleed'] = $n( (float) $page['bleed'] / self::UNITS['mm'] ) . 'mm';
+		// No safe margin and no bleed when there is none; written in the unit it was in (millimeters when none is said).
+		foreach ( array( 'safe', 'bleed' ) as $key ) {
+			if ( (float) ( $page[ $key ] ?? 0 ) > 0 ) {
+				$out[ $key ] = self::keep_in( (float) $page[ $key ], (string) ( $page[ $key . 'Unit' ] ?? 'mm' ) );
+			}
 		}
 
-		return $out + array_diff_key( $page, array_flip( array( 'w', 'h', 'bg', 'safe', 'bleed' ) ) );
+		return $out + array_diff_key( $page, array_flip( array( 'w', 'h', 'bg', 'safe', 'bleed', 'safeUnit', 'bleedUnit' ) ) );
+	}
+
+	/**
+	 * The unit a length is written in ("24pt" is pt, "9.5mm" is mm); empty for a number with no unit, a percentage or a calc().
+	 *
+	 * @param mixed $length Length.
+	 * @return string
+	 */
+	public static function unit_of( $length ) {
+		return is_string( $length ) && 1 === preg_match( '/^\s*[\d.,+-]+\s*(pt|px|mm|cm|in)\s*$/i', $length, $m ) ? strtolower( $m[1] ) : '';
+	}
+
+	/**
+	 * A length in points written in a unit: two decimals (three in inches), no zeros at the end. The same as keepIn() of the editors.
+	 *
+	 * @param float  $points Length in points.
+	 * @param string $unit   pt, px, mm, cm or in (mm for any other).
+	 * @return string
+	 */
+	public static function keep_in( $points, $unit ) {
+		$unit   = isset( self::UNITS[ $unit ] ) ? $unit : 'mm';
+		$digits = 'in' === $unit ? 3 : 2;
+
+		return rtrim( rtrim( number_format( round( $points / self::UNITS[ $unit ], $digits ), $digits, '.', '' ), '0' ), '.' ) . $unit;
 	}
 }

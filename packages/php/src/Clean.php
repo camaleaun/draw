@@ -648,6 +648,12 @@ final class Clean {
 				'bleed' => $this->clean_number( $page['bleed'] ?? 0, 0, 500 ) ?? 0,
 			),
 		);
+		// The unit of a margin (anything but millimeters) is kept: Page::stored() writes the length in it.
+		foreach ( array( 'safe', 'bleed' ) as $key ) {
+			if ( in_array( $page[ $key . 'Unit' ] ?? '', array( 'pt', 'px', 'cm', 'in' ), true ) ) {
+				$out['page'][ $key . 'Unit' ] = $page[ $key . 'Unit' ];
+			}
+		}
 		if ( is_array( $page['bg'] ?? null ) ) {
 			$out['page']['bg'] = array();
 			foreach ( array( 'light', 'dark' ) as $mode ) {
