@@ -1,0 +1,38 @@
+{
+	"fields": [ "name", "event", "location", "issued_date", "hours" ],
+	"roundtrip": [
+		{ "text": "Dear [name]", "runs": [ { "text": "Dear " }, { "field": "name" } ] },
+		{ "text": "held in *[location]*, ok", "runs": [ { "text": "held in " }, { "field": "location", "b": true }, { "text": ", ok" } ] },
+		{ "text": "_[event]_ and *bold*", "runs": [ { "field": "event", "i": true }, { "text": " and " }, { "text": "bold", "b": true } ] },
+		{ "text": "*_both_*", "runs": [ { "text": "both", "b": true, "i": true } ] },
+		{ "text": "*Dear [name]*", "runs": [ { "text": "Dear ", "b": true }, { "field": "name", "b": true } ] },
+		{ "text": "[name][event]", "runs": [ { "field": "name" }, { "field": "event" } ] },
+		{ "text": "a\nb", "runs": [ { "text": "a\nb" } ] },
+		{ "text": "5 \\* 3", "runs": [ { "text": "5 * 3" } ] },
+		{ "text": "\\[name]", "runs": [ { "text": "[name]" } ] },
+		{ "text": "\\{name}", "runs": [ { "text": "{name}" } ] },
+		{ "text": "snake_case", "runs": [ { "text": "snake_case" } ] },
+		{ "text": "\\_x\\_", "runs": [ { "text": "_x_" } ] },
+		{ "text": "[issued_date:long]", "runs": [ { "field": "issued_date", "format": "long" } ] },
+		{ "text": "Olá *mundo*", "runs": [ { "text": "Olá " }, { "text": "mundo", "b": true } ] },
+		{ "text": "a\\\\b", "runs": [ { "text": "a\\b" } ] },
+		{ "text": "", "runs": [] }
+	],
+	"parse": [
+		{ "text": "5 * 3", "runs": [ { "text": "5 * 3" } ] },
+		{ "text": "**legacy**", "runs": [ { "text": "legacy", "b": true } ] },
+		{ "text": "***x***", "runs": [ { "text": "x", "b": true } ] },
+		{ "text": "{name} and {unknown}", "runs": [ { "field": "name" }, { "text": " and {unknown}" } ] },
+		{ "text": "[unknown]", "runs": [ { "text": "[unknown]" } ] },
+		{ "text": "[ name ]", "runs": [ { "text": "[ name ]" } ] },
+		{ "text": "[name", "runs": [ { "text": "[name" } ] },
+		{ "text": "[a:b:c]", "runs": [ { "text": "[a:b:c]" } ] },
+		{ "text": "[name:site]", "runs": [ { "field": "name" } ] },
+		{ "text": "a_b_c", "runs": [ { "text": "a_b_c" } ] },
+		{ "text": "_italic_ text", "runs": [ { "text": "italic", "i": true }, { "text": " text" } ] },
+		{ "text": "back\\slash", "runs": [ { "text": "back\\slash" } ] },
+		{ "text": "*open", "runs": [ { "text": "*open" } ] },
+		{ "text": "x_ y", "runs": [ { "text": "x_ y" } ] },
+		{ "text": "[foo]", "fields": null, "runs": [ { "field": "foo" } ] }
+	]
+}
