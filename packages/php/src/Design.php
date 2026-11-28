@@ -203,7 +203,7 @@ final class Design {
 				continue;
 			}
 			$type  = (string) ( $element['type'] ?? '' );
-			$attrs = Names::to_attrs( $element, $options['names'], $options['fields'] );
+			$attrs = Names::to_attrs( $element, $options['names'], $options['fields'], $options['fonts'] );
 			unset( $attrs['type'] );
 			// A block of its own for a type with a slot (`text:date-of-emission`): the slot is what the block says, so it is not written.
 			$special = isset( $element['slot'] ) && isset( $options['blocks'][ $type . ':' . $element['slot'] ] ) ? $type . ':' . $element['slot'] : $type;

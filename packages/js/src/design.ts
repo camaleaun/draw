@@ -54,7 +54,7 @@ function blocks( elements: unknown, o: Resolved ): Block[] {
 		if ( ! isObject( element ) ) {
 			continue;
 		}
-		const { type, ...attrs } = toAttrs( element, o.names, o.fields );
+		const { type, ...attrs } = toAttrs( element, o.names, o.fields, o.fonts );
 		const kind = String( element.type ?? '' );
 		// A block of its own for a type with a slot (`text:date-of-emission`): the slot is what the block says, so it is not written.
 		const special = element.slot !== undefined && o.blocks[ `${ kind }:${ String( element.slot ) }` ] ? `${ kind }:${ String( element.slot ) }` : kind;

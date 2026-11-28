@@ -60,6 +60,8 @@ def attrs(el):
             style(out, 'color', 'text', value)
         elif key == 'fit' and t == 'text':
             out['fitText'] = True
+        elif key == 'fit' and t == 'image':
+            out['scale'] = value
         elif key == 'min':
             out['minFontSize'] = pt(value)
         elif key == 'fill':

@@ -132,21 +132,17 @@ final class Core {
 			'space-between' => 'between',
 		);
 		$out        = array();
-		if ( 'grid' === ( $layout['type'] ?? '' ) ) {
-			$out['arrange'] = 'grid';
-			if ( isset( $layout['columnCount'] ) ) {
-				$out['columns'] = $layout['columnCount'];
-			}
-
-			return $out;
-		}
+		$is_grid        = 'grid' === ( $layout['type'] ?? '' );
 		$is_vertical    = 'vertical' === ( $layout['orientation'] ?? '' );
-		$out['arrange'] = $is_vertical ? 'stack' : 'row';
+		$out['arrange'] = $is_grid ? 'grid' : ( $is_vertical ? 'stack' : 'row' );
+		if ( $is_grid && isset( $layout['columnCount'] ) ) {
+			$out['columns'] = $layout['columnCount'];
+		}
 		$across         = isset( $layout['justifyContent'] ) ? ( $horizontal[ (string) $layout['justifyContent'] ] ?? $layout['justifyContent'] ) : null;
 		$along          = isset( $layout['verticalAlignment'] ) ? ( $vertical[ (string) $layout['verticalAlignment'] ] ?? $layout['verticalAlignment'] ) : null;
 		// The main axis of a row is horizontal and of a stack vertical: `justify` is the main one, `align` the other.
-		$justify = $is_vertical ? $along : $across;
-		$align   = $is_vertical ? $across : $along;
+		$justify = $is_vertical && ! $is_grid ? $along : $across;
+		$align   = $is_vertical && ! $is_grid ? $across : $along;
 		if ( null !== $justify ) {
 			$out['justify'] = $justify;
 		}
@@ -254,8 +250,12 @@ final class Core {
 			}
 		}
 		if ( isset( $out['anchor'] ) ) {
-			$out['id'] = $out['anchor'];
-			unset( $out['anchor'] );
+			// In the place the anchor had, so the element reads back with its keys in the order it was written.
+			$renamed = array();
+			foreach ( $out as $key => $value ) {
+				$renamed['anchor' === $key ? 'id' : $key] = $value;
+			}
+			$out = $renamed;
 		}
 		foreach ( array( 'x', 'y', 'width', 'height', 'x1', 'y1', 'x2', 'y2', 'qr' ) as $key ) {
 			if ( isset( $out[ $key ] ) ) {
@@ -349,6 +349,233 @@ final class Core {
 				$out['ratio'] = $out['aspectRatio'];
 				unset( $out['aspectRatio'] );
 			}
+		}
+
+		return $out;
+	}
+
+	/**
+	 * A number as text, the way JSON says it (the shortest that reads back the same), with no `.0`.
+	 *
+	 * @param float|int $n Number.
+	 * @return string
+	 */
+	private static function num_text( $n ) {
+		$text = (string) json_encode( $n + 0 );
+
+		return '.0' === substr( $text, -2 ) ? substr( $text, 0, -2 ) : $text;
+	}
+
+	/**
+	 * A number of points as a length with its unit ("13pt"); what is not a number is as it is.
+	 *
+	 * @param mixed $value Value.
+	 * @return mixed
+	 */
+	private static function pt( $value ) {
+		return ( is_int( $value ) || is_float( $value ) ) ? self::num_text( $value ) . 'pt' : $value;
+	}
+
+	/**
+	 * `arrange`, `justify`, `align` and `columns` of a group as a core layout object.
+	 *
+	 * @param mixed $arrange row, stack or grid.
+	 * @param mixed $justify Main axis alignment.
+	 * @param mixed $align   Cross axis alignment.
+	 * @param mixed $columns Columns of a grid.
+	 * @return array<string, mixed>
+	 */
+	private static function arrange_to( $arrange, $justify, $align, $columns ) {
+		$horizontal = array(
+			'start'   => 'left',
+			'center'  => 'center',
+			'end'     => 'right',
+			'between' => 'space-between',
+		);
+		$vertical   = array(
+			'start'   => 'top',
+			'center'  => 'center',
+			'end'     => 'bottom',
+			'between' => 'space-between',
+		);
+		$out        = array( 'type' => 'grid' === $arrange ? 'grid' : 'flex' );
+		$is_stack   = 'stack' === $arrange;
+		if ( 'row' === $arrange || $is_stack ) {
+			$out['orientation'] = $is_stack ? 'vertical' : 'horizontal';
+		}
+		if ( 'grid' === $arrange && null !== $columns ) {
+			$out['columnCount'] = $columns;
+		}
+		// The main axis of a row is horizontal and of a stack vertical.
+		$across = $is_stack ? $align : $justify;
+		$along  = $is_stack ? $justify : $align;
+		if ( null !== $across ) {
+			$out['justifyContent'] = $horizontal[ (string) $across ] ?? $across;
+		}
+		if ( null !== $along ) {
+			$out['verticalAlignment'] = $vertical[ (string) $along ] ?? $along;
+		}
+
+		return $out;
+	}
+
+	/**
+	 * The typography and color of a part of the verification (`code`, `hint`) as a core block says them.
+	 *
+	 * @param mixed $value Value.
+	 * @return mixed
+	 */
+	private static function part_to( $value ) {
+		if ( ! is_array( $value ) ) {
+			return $value;
+		}
+		$typography = array();
+		$out        = array();
+		foreach ( $value as $key => $item ) {
+			if ( 'size' === $key ) {
+				$typography['fontSize'] = self::pt( $item );
+			} elseif ( 'weight' === $key ) {
+				$typography['fontWeight'] = (string) $item;
+			} elseif ( 'lineHeight' === $key ) {
+				$typography['lineHeight'] = ( is_int( $item ) || is_float( $item ) ) ? self::num_text( $item ) : $item;
+			} elseif ( 'color' === $key ) {
+				$out['color'] = array( 'text' => $item );
+			} else {
+				$out[ $key ] = $item;
+			}
+		}
+
+		return ( $typography ? array( 'typography' => $typography ) : array() ) + $out;
+	}
+
+	/**
+	 * The attributes of an element (with the names a block says in full: `width`, `lineHeight`, `text`…) as the attributes of a core block; what has no core name is as it is.
+	 *
+	 * @param array<string, mixed>    $attrs Attributes.
+	 * @param string                  $type  The type of the element.
+	 * @param array<int, string>|null $fonts The families the host has.
+	 * @return array<string, mixed>
+	 */
+	public static function to_core( array $attrs, $type = '', $fonts = null ) {
+		$out        = array();
+		$typography = array();
+		$color      = array();
+		$border     = array();
+		$spacing    = array();
+		$dimensions = array();
+		$metadata   = array();
+		$is_group   = 'group' === $type;
+		$lengths    = array( 'x', 'y', 'width', 'height', 'x1', 'y1', 'x2', 'y2', 'qr', 'minFontSize' );
+		foreach ( $attrs as $key => $value ) {
+			if ( 'id' === $key ) {
+				$out['anchor'] = $value;
+			} elseif ( 'attachment' === $key ) {
+				$out['id'] = $value;
+			} elseif ( 'locked' === $key ) {
+				if ( $value ) {
+					$out['lock'] = array(
+						'move'   => true,
+						'remove' => true,
+					);
+				}
+			} elseif ( 'lock' === $key ) {
+				$dimensions['aspectRatio'] = is_int( $value ) || is_float( $value ) ? self::num_text( $value ) : (string) $value;
+			} elseif ( 'name' === $key ) {
+				$metadata['name'] = $value;
+			} elseif ( 'hidden' === $key ) {
+				if ( $value ) {
+					$metadata['blockVisibility'] = false;
+				}
+			} elseif ( in_array( $key, $lengths, true ) ) {
+				$out[ $key ] = self::pt( $value );
+			} elseif ( 'min' === $key ) {
+				$out['minFontSize'] = self::pt( $value );
+			} elseif ( 'layout' === $key && is_array( $value ) ) {
+				$layout = array();
+				foreach ( $value as $k => $v ) {
+					$layout['ref' === $k ? 'reference' : $k] = $v;
+				}
+				$out['layout'] = $layout;
+			} elseif ( 'variants' === $key && is_array( $value ) ) {
+				$out['textVariants'] = array( $value );
+			} elseif ( 'font' === $key ) {
+				$out['fontFamily'] = is_string( $value ) && is_array( $fonts ) && in_array( $value, $fonts, true ) ? self::slug( $value ) : $value;
+			} elseif ( 'weight' === $key ) {
+				$typography['fontWeight'] = (string) $value;
+			} elseif ( 'size' === $key ) {
+				$typography['fontSize'] = self::pt( $value );
+			} elseif ( 'lineHeight' === $key ) {
+				$typography['lineHeight'] = ( is_int( $value ) || is_float( $value ) ) ? self::num_text( $value ) : $value;
+			} elseif ( 'letterSpacing' === $key ) {
+				$typography['letterSpacing'] = self::pt( $value );
+			} elseif ( 'align' === $key && ! $is_group ) {
+				$typography['textAlign'] = $value;
+			} elseif ( 'upper' === $key ) {
+				if ( $value ) {
+					$typography['textTransform'] = 'uppercase';
+				}
+			} elseif ( 'color' === $key ) {
+				$color['text'] = $value;
+			} elseif ( 'fit' === $key && 'image' !== $type ) {
+				$out['fitText'] = $value;
+			} elseif ( 'fill' === $key ) {
+				$color['background'] = $value;
+			} elseif ( 'stroke' === $key ) {
+				$border['color'] = $value;
+			} elseif ( 'strokeWidth' === $key ) {
+				$border['width'] = self::pt( $value );
+			} elseif ( 'dash' === $key ) {
+				$border['style'] = $value;
+			} elseif ( 'radius' === $key && is_array( $value ) && 4 === count( $value ) ) {
+				$same = true;
+				foreach ( $value as $corner ) {
+					$same = $same && $corner === $value[0];
+				}
+				if ( $same ) {
+					$border['radius'] = self::pt( $value[0] );
+				} else {
+					$border['radius'] = array();
+					foreach ( array( 'topLeft', 'topRight', 'bottomRight', 'bottomLeft' ) as $i => $name ) {
+						$border['radius'][ $name ] = self::pt( $value[ $i ] );
+					}
+				}
+			} elseif ( 'arrange' === $key && $is_group ) {
+				$out['arrange'] = self::arrange_to( $value, $attrs['justify'] ?? null, $attrs['align'] ?? null, $attrs['columns'] ?? null );
+			} elseif ( in_array( $key, array( 'justify', 'columns', 'align' ), true ) && $is_group && isset( $attrs['arrange'] ) ) {
+				continue;
+			} elseif ( 'gap' === $key ) {
+				$spacing['blockGap'] = self::pt( $value );
+			} elseif ( 'padding' === $key ) {
+				$spacing['padding'] = self::pt( $value );
+			} elseif ( 'src' === $key && 'image' === $type ) {
+				$out['url'] = $value;
+			} elseif ( 'ratio' === $key && 'image' === $type ) {
+				$out['aspectRatio'] = $value;
+			} elseif ( 'fit' === $key ) {
+				$out['scale'] = $value;
+			} elseif ( 'code' === $key || 'hint' === $key ) {
+				$out[ $key ] = self::part_to( $value );
+			} else {
+				$out[ $key ] = $value;
+			}
+		}
+		$style = array();
+		foreach ( array(
+			'typography' => $typography,
+			'color'      => $color,
+			'border'     => $border,
+			'spacing'    => $spacing,
+			'dimensions' => $dimensions,
+		) as $name => $part ) {
+			if ( $part ) {
+				$style[ $name ] = $part;
+			}
+		}
+		if ( $metadata ) {
+			$out['metadata'] = $metadata;
+		}
+		if ( $style ) {
+			$out['style'] = $style;
 		}
 
 		return $out;

@@ -119,6 +119,36 @@ final class DesignTest extends TestCase {
 	}
 
 	/**
+	 * What 0.27 writes is what the oracle says, block by block.
+	 *
+	 * @dataProvider written_with_core_attributes
+	 */
+	public function test_the_markup_is_written_with_the_attributes_of_a_core_block( $file ) {
+		$design  = json_decode( file_get_contents( str_replace( array( '/markup/', '.new.html' ), array( '/', '.json' ), $file ) ), true );
+		$written = Design::to_markup( $design, array( 'fonts' => array( 'Inter', 'Lora' ) ) );
+		$this->assertSame( json_encode( $this->canon_blocks( Markup::parse( file_get_contents( $file ) ) ) ), json_encode( $this->canon_blocks( Markup::parse( $written ) ) ) );
+	}
+
+	/**
+	 * Blocks with their attributes in a fixed order, to compare them.
+	 *
+	 * @param array<int, array<string, mixed>> $blocks Blocks.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function canon_blocks( array $blocks ) {
+		return array_map(
+			function ( $block ) {
+				return array(
+					'name'     => $block['name'],
+					'attrs'    => $this->canon( $block['attrs'] ),
+					'children' => $this->canon_blocks( $block['children'] ),
+				);
+			},
+			$blocks
+		);
+	}
+
+	/**
 	 * The attributes of a core block, one by one (the same cases as the TypeScript test).
 	 */
 	public function test_the_attributes_of_a_core_block_one_by_one() {
@@ -251,7 +281,7 @@ final class DesignTest extends TestCase {
 		);
 		$markup = Design::to_markup( $design );
 		$this->assertStringContainsString( '"text":"Held in **[[location]]**"', $markup );
-		$this->assertStringContainsString( '"variants":{"pt_BR":"Em *[[location]]*"}', $markup );
+		$this->assertStringContainsString( '"textVariants":[{"pt_BR":"Em *[[location]]*"}]', $markup );
 		$this->assertSame( $design, Design::from_markup( $markup ) );
 	}
 
@@ -279,7 +309,7 @@ final class DesignTest extends TestCase {
 			),
 		);
 		$markup  = Design::to_markup( $design, $options );
-		$this->assertStringContainsString( 'wp:a/date-of-emission {"id":"d","text":"[[issued_date]]"}', $markup );
+		$this->assertStringContainsString( 'wp:a/date-of-emission {"anchor":"d","text":"[[issued_date]]"}', $markup );
 		$this->assertStringContainsString( '"slot":"other"', $markup, 'Another slot stays an attribute of the text.' );
 		$this->assertSame( $design, Design::from_markup( $markup, $options ) );
 	}
@@ -309,7 +339,7 @@ final class DesignTest extends TestCase {
 		$markup = Design::to_markup( $design );
 
 		$this->assertSame( 0, preg_match( '/draw\/group \{[^}]*"id"/', $markup ), 'No id on a group: ' . $markup );
-		$this->assertStringContainsString( '"id":"signature"', $markup, 'What means something stays.' );
+		$this->assertStringContainsString( '"anchor":"signature"', $markup, 'What means something stays.' );
 		$back = Design::from_markup( $markup );
 		$this->assertSame( 'group-1', $back['elements'][0]['id'], 'Made again by position.' );
 		$this->assertSame( 'group-1-group-1', $back['elements'][0]['children'][0]['id'] );
@@ -330,14 +360,14 @@ final class DesignTest extends TestCase {
 		);
 		$markup = Design::to_markup( $design );
 
-		$this->assertStringContainsString( '"width":30,"height":20', $markup );
-		$this->assertStringContainsString( '"layout":{"horizontal":{"mode":"stretch"},"vertical":{"mode":"start"},"ref":"safe"}', $markup );
+		$this->assertStringContainsString( '"width":"30pt","height":"20pt"', $markup );
+		$this->assertStringContainsString( '"layout":{"horizontal":{"mode":"stretch"},"vertical":{"mode":"start"},"reference":"safe"}', $markup );
 		$this->assertStringContainsString( '"viewBox":"0 0 24 24"', $markup );
-		$this->assertStringContainsString( '"lineHeight":1.2,"letterSpacing":0.5', $markup );
+		$this->assertStringContainsString( '"typography":{"lineHeight":"1.2","letterSpacing":"0.5pt"}', $markup );
 		$this->assertStringContainsString( '"text":"**a***[[name]]*"', $markup, 'A text is written as text.' );
 		$this->assertStringNotContainsString( '"runs"', $markup );
-		$this->assertStringContainsString( '"x1":0', $markup, 'The coordinates of a line stay.' );
-		$this->assertStringContainsString( '"id":"title"', $markup, 'An id that means something stays.' );
+		$this->assertStringContainsString( '"x1":"0pt"', $markup, 'The coordinates of a line are lengths with their unit.' );
+		$this->assertStringContainsString( '"anchor":"title"', $markup, 'An id that means something is the anchor.' );
 		$this->assertSame( 0, preg_match( '/"id":"(rect-2|svg-)/', $markup ), 'An id that only counts is not written.' );
 		$this->assertSame( 0, preg_match( '/"(w|h|vw|vh|lh|ls|b|i)":/', $markup ), 'No short name.' );
 
@@ -393,7 +423,7 @@ final class DesignTest extends TestCase {
 		);
 		$markup = Design::to_markup( $design );
 		$this->assertStringContainsString( '<!-- wp:draw/group ', $markup );
-		$this->assertStringContainsString( '<!-- wp:draw/rect {"width":5,"height":5} /-->', $markup );
+		$this->assertStringContainsString( '<!-- wp:draw/rect {"width":"5pt","height":"5pt"} /-->', $markup );
 		$this->assertStringNotContainsString( '"children"', $markup );
 		$back = Design::from_markup( $markup );
 		$this->assertSame( 'group', $back['elements'][1]['type'] );

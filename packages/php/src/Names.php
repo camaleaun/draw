@@ -167,9 +167,10 @@ class Names {
 	 * @param array<string, mixed>  $element Element (as the model says it).
 	 * @param array<string, string> $names   The default names a host adds (by type or `type:slot`).
 	 * @param array<int, string>|null $fields The keys that are fields (not used to write: a field is written as it is).
+	 * @param array<int, string>|null $fonts The families the host has (a font of them is written as its slug).
 	 * @return array<string, mixed>
 	 */
-	public static function to_attrs( array $element, array $names = array(), $fields = null ) {
+	public static function to_attrs( array $element, array $names = array(), $fields = null, $fonts = null ) {
 		$default = self::default_name( $element, $names );
 		$element = self::names( $element, true, $fields );
 		$out     = array();
@@ -192,7 +193,8 @@ class Names {
 			}
 		}
 
-		return $out;
+		// The attributes of a core block: `style.typography`, `fontFamily`, a length with its unit.
+		return Core::to_core( $out, (string) ( $element['type'] ?? '' ), $fonts );
 	}
 
 	/**

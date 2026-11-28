@@ -5,7 +5,7 @@
  *
  * The same as `Names` of the PHP package.
  */
-import { fromCore } from './core';
+import { fromCore, toCore } from './core';
 import { parseRuns, runsToText, type Run } from './runs';
 
 type Attrs = Record< string, unknown >;
@@ -88,7 +88,7 @@ export function defaultName( element: Attrs, hostNames: Record< string, string >
 }
 
 /** An element as the attributes of its block. */
-export function toAttrs( element: Attrs, hostNames: Record< string, string > = {}, fields?: string[] ): Attrs {
+export function toAttrs( element: Attrs, hostNames: Record< string, string > = {}, fields?: string[], fonts?: string[] ): Attrs {
 	const fallback = defaultName( element, hostNames );
 	const el = names( element, true, fields );
 	const out: Attrs = {};
@@ -110,7 +110,8 @@ export function toAttrs( element: Attrs, hostNames: Record< string, string > = {
 			out[ key ] = value;
 		}
 	}
-	return out;
+	// The attributes of a core block: `style.typography`, `fontFamily`, a length with its unit.
+	return toCore( out, String( element.type ?? '' ), fonts );
 }
 
 /** The attributes of a block as an element, with no id when the block said none. */

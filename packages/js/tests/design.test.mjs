@@ -39,6 +39,16 @@ for ( const file of readdirSync( path.join( golden, 'markup' ) ).filter( ( name 
 	} );
 }
 
+// What 0.27 writes is what the oracle says, block by block (the oracle is made from the table of docs/block-markup.md, not by the package).
+for ( const file of readdirSync( path.join( golden, 'markup' ) ).filter( ( name ) => name.endsWith( '.new.html' ) ) ) {
+	test( `the markup is written with the attributes of a core block: ${ file }`, () => {
+		const design = JSON.parse( readFileSync( path.join( golden, file.replace( '.new.html', '.json' ) ), 'utf8' ) );
+		const written = toMarkup( design, { fonts: [ 'Inter', 'Lora' ] } );
+		const expected = readFileSync( path.join( golden, 'markup', file ), 'utf8' );
+		assert.deepEqual( canon( parse( written ) ), canon( parse( expected ) ) );
+	} );
+}
+
 test( 'the attributes of a core block, one by one', () => {
 	const read = ( attrs, options ) => fromMarkup( `<!-- wp:events-certificates/certificate {"page":{"w":1,"h":1}} --><!-- wp:draw/text ${ JSON.stringify( attrs ) } /--><!-- /wp:events-certificates/certificate -->`, options ).elements[ 0 ];
 	assert.equal( read( { style: { typography: { fontSize: '13px' } } } ).size, 13, 'px is the point' );
@@ -153,13 +163,13 @@ test( 'an element is written with the names of a block, and read back with the m
 		],
 	};
 	const markup = toMarkup( design );
-	assert.ok( markup.includes( '"width":30,"height":20' ) );
-	assert.ok( markup.includes( '"layout":{"horizontal":{"mode":"stretch"},"vertical":{"mode":"start"},"ref":"safe"}' ) );
+	assert.ok( markup.includes( '"width":"30pt","height":"20pt"' ) );
+	assert.ok( markup.includes( '"layout":{"horizontal":{"mode":"stretch"},"vertical":{"mode":"start"},"reference":"safe"}' ) );
 	assert.ok( markup.includes( '"viewBox":"0 0 24 24"' ) );
-	assert.ok( markup.includes( '"lineHeight":1.2,"letterSpacing":0.5' ) );
+	assert.ok( markup.includes( '"typography":{"lineHeight":"1.2","letterSpacing":"0.5pt"}' ) );
 	assert.ok( markup.includes( '"text":"**a***[[name]]*"' ) && ! markup.includes( '"runs"' ), 'A text is written as text.' );
-	assert.ok( markup.includes( '"x1":0' ), 'the coordinates of a line stay' );
-	assert.ok( markup.includes( '"id":"title"' ), 'an id that means something stays' );
+	assert.ok( markup.includes( '"x1":"0pt"' ), 'the coordinates of a line are lengths with their unit' );
+	assert.ok( markup.includes( '"anchor":"title"' ), 'an id that means something is the anchor' );
 	assert.equal( /"id":"(rect-2|svg-)/.test( markup ), false, 'an id that only counts is not written' );
 	assert.equal( /"(w|h|vw|vh|lh|ls|b|i)":/.test( markup ), false, 'no short name' );
 	const back = fromMarkup( markup );
@@ -188,7 +198,7 @@ test( 'a group keeps what is in it as inner blocks, down to the last level, and 
 	};
 	const markup = toMarkup( design );
 	assert.match( markup, /<!-- wp:draw\/group /, 'the group is a block' );
-	assert.match( markup, /<!-- wp:draw\/rect \{"width":5,"height":5\} \/-->/, 'its children are inner blocks' );
+	assert.match( markup, /<!-- wp:draw\/rect \{"width":"5pt","height":"5pt"\} \/-->/, 'its children are inner blocks' );
 	assert.ok( ! markup.includes( '"children"' ), 'children is not an attribute' );
 	const back = fromMarkup( markup );
 	const group = back.elements[ 1 ];
@@ -206,7 +216,7 @@ test( 'a group keeps what is in it as inner blocks, down to the last level, and 
 test( 'a text is written as text and read as runs, in every language', () => {
 	const design = { page: { w: 1, h: 1 }, elements: [ { type: 'text', id: 't', runs: [ { text: 'Held in ' }, { field: 'location', b: true } ], variants: { pt_BR: [ { text: 'Em ' }, { field: 'location', i: true } ] } } ] };
 	const markup = toMarkup( design );
-	assert.ok( markup.includes( '"text":"Held in **[[location]]**"' ) && markup.includes( '"variants":{"pt_BR":"Em *[[location]]*"}' ) );
+	assert.ok( markup.includes( '"text":"Held in **[[location]]**"' ) && markup.includes( '"textVariants":[{"pt_BR":"Em *[[location]]*"}]' ) );
 	assert.deepEqual( fromMarkup( markup ), design );
 } );
 
@@ -227,7 +237,7 @@ test( 'a type with a slot can have a block of its own, and the slot is what the 
 	const options = { blocks: { 'text:date-of-emission': 'a/date-of-emission' } };
 	const design = { page: { w: 1, h: 1 }, elements: [ { type: 'text', id: 'd', slot: 'date-of-emission', runs: [ { field: 'issued_date' } ] }, { type: 'text', id: 't', slot: 'other', runs: [] } ] };
 	const markup = toMarkup( design, options );
-	assert.ok( markup.includes( 'wp:a/date-of-emission {"id":"d","text":"[[issued_date]]"}' ), markup );
+	assert.ok( markup.includes( 'wp:a/date-of-emission {"anchor":"d","text":"[[issued_date]]"}' ), markup );
 	assert.ok( markup.includes( '"slot":"other"' ), 'Another slot stays an attribute of the text.' );
 	assert.deepEqual( fromMarkup( markup, options ), design );
 } );
@@ -244,7 +254,7 @@ test( 'a group says no id in a file (nothing points at it), whatever its id look
 	};
 	const markup = toMarkup( design );
 	assert.equal( /certificate-group[^>]*"id"|draw\/group[^>]*"id"/.test( markup ), false, 'no id on a group: ' + markup );
-	assert.ok( markup.includes( '"id":"signature"' ) && markup.includes( '"id":"name"' ), 'what means something stays' );
+	assert.ok( markup.includes( '"anchor":"signature"' ) && markup.includes( '"anchor":"name"' ), 'what means something stays' );
 	const back = fromMarkup( markup );
 	assert.equal( back.elements[ 0 ].id, 'group-1', 'made again by position' );
 	assert.equal( back.elements[ 0 ].children[ 0 ].id, 'group-1-group-1' );

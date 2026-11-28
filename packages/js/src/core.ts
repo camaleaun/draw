@@ -48,18 +48,17 @@ const VERTICAL: Record< string, string > = { top: 'start', center: 'center', bot
 /** A core layout object (`{ type: 'flex', orientation, justifyContent, verticalAlignment }`, `{ type: 'grid', columnCount }`) as what the model keeps: arrange, justify, align, columns. */
 function arrangeFrom( layout: Attrs ): Attrs {
 	const out: Attrs = {};
-	if ( layout.type === 'grid' ) {
-		out.arrange = 'grid';
-		if ( layout.columnCount !== undefined ) {
+	{
+		const grid = layout.type === 'grid';
+		const vertical = layout.orientation === 'vertical';
+		out.arrange = grid ? 'grid' : vertical ? 'stack' : 'row';
+		if ( grid && layout.columnCount !== undefined ) {
 			out.columns = layout.columnCount;
 		}
-	} else {
-		const vertical = layout.orientation === 'vertical';
-		out.arrange = vertical ? 'stack' : 'row';
 		const across = layout.justifyContent !== undefined ? HORIZONTAL[ String( layout.justifyContent ) ] ?? layout.justifyContent : undefined;
 		const along = layout.verticalAlignment !== undefined ? VERTICAL[ String( layout.verticalAlignment ) ] ?? layout.verticalAlignment : undefined;
 		// The main axis of a row is horizontal and of a stack vertical: `justify` is the main one, `align` the other.
-		const [ justify, align ] = vertical ? [ along, across ] : [ across, along ];
+		const [ justify, align ] = vertical && ! grid ? [ along, across ] : [ across, along ];
 		if ( justify !== undefined ) {
 			out.justify = justify;
 		}
@@ -231,4 +230,156 @@ export function fromCore( attrs: Attrs, type: string, fonts?: string[] ): Attrs 
 		}
 	}
 	return out;
+}
+
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Writing: the element as the attributes of a core block, the way `fromCore` reads them.
+
+/** A number of points as a length with its unit ("13pt"); what is not a number is as it is. */
+const pt = ( value: unknown ): unknown => ( typeof value === 'number' ? `${ value }pt` : value );
+
+const WRITE_HORIZONTAL: Record< string, string > = { start: 'left', center: 'center', end: 'right', between: 'space-between' };
+const WRITE_VERTICAL: Record< string, string > = { start: 'top', center: 'center', end: 'bottom', between: 'space-between' };
+
+/** `arrange`, `justify`, `align` and `columns` of a group as a core layout object. */
+function arrangeTo( arrange: unknown, justify: unknown, align: unknown, columns: unknown ): Attrs {
+	const out: Attrs = { type: arrange === 'grid' ? 'grid' : 'flex' };
+	const vertical = arrange === 'stack';
+	if ( arrange === 'row' || vertical ) {
+		out.orientation = vertical ? 'vertical' : 'horizontal';
+	}
+	if ( arrange === 'grid' && columns !== undefined ) {
+		out.columnCount = columns;
+	}
+	// The main axis of a row is horizontal and of a stack vertical.
+	const [ across, along ] = vertical ? [ align, justify ] : [ justify, align ];
+	if ( across !== undefined ) {
+		out.justifyContent = WRITE_HORIZONTAL[ String( across ) ] ?? across;
+	}
+	if ( along !== undefined ) {
+		out.verticalAlignment = WRITE_VERTICAL[ String( along ) ] ?? along;
+	}
+	return out;
+}
+
+/** The typography and color of a part of the verification (`code`, `hint`) as a core block says them. */
+function partTo( value: unknown ): unknown {
+	if ( ! isObject( value ) ) {
+		return value;
+	}
+	const typography: Attrs = {};
+	const out: Attrs = {};
+	for ( const [ key, item ] of Object.entries( value ) ) {
+		if ( key === 'size' ) {
+			typography.fontSize = pt( item );
+		} else if ( key === 'weight' ) {
+			typography.fontWeight = String( item );
+		} else if ( key === 'lineHeight' ) {
+			typography.lineHeight = typeof item === 'number' ? String( item ) : item;
+		} else if ( key === 'color' ) {
+			out.color = { text: item };
+		} else {
+			out[ key ] = item;
+		}
+	}
+	return { ...( Object.keys( typography ).length ? { typography } : {} ), ...out };
+}
+
+/** The attributes of an element (with the names a block says in full: `width`, `lineHeight`, `text`…) as the attributes of a core block; what has no core name is as it is. */
+export function toCore( attrs: Attrs, type: string, fonts?: string[] ): Attrs {
+	const out: Attrs = {};
+	const typography: Attrs = {};
+	const color: Attrs = {};
+	const border: Attrs = {};
+	const spacing: Attrs = {};
+	const dimensions: Attrs = {};
+	const metadata: Attrs = {};
+	const group = type === 'group';
+	for ( const [ key, value ] of Object.entries( attrs ) ) {
+		if ( key === 'id' ) {
+			out.anchor = value;
+		} else if ( key === 'attachment' ) {
+			out.id = value;
+		} else if ( key === 'locked' ) {
+			if ( value ) {
+				out.lock = { move: true, remove: true };
+			}
+		} else if ( key === 'lock' ) {
+			dimensions.aspectRatio = String( value );
+		} else if ( key === 'name' ) {
+			metadata.name = value;
+		} else if ( key === 'hidden' ) {
+			if ( value ) {
+				metadata.blockVisibility = false;
+			}
+		} else if ( [ 'x', 'y', 'width', 'height', 'x1', 'y1', 'x2', 'y2', 'qr', 'minFontSize' ].includes( key ) ) {
+			out[ key ] = pt( value );
+		} else if ( key === 'min' ) {
+			out.minFontSize = pt( value );
+		} else if ( key === 'layout' && isObject( value ) ) {
+			out.layout = Object.fromEntries( Object.entries( value ).map( ( [ k, v ] ) => [ k === 'ref' ? 'reference' : k, v ] ) );
+		} else if ( key === 'variants' && isObject( value ) ) {
+			out.textVariants = [ value ];
+		} else if ( key === 'font' ) {
+			out.fontFamily = typeof value === 'string' && fonts?.includes( value ) ? slug( value ) : value;
+		} else if ( key === 'weight' ) {
+			typography.fontWeight = String( value );
+		} else if ( key === 'size' ) {
+			typography.fontSize = pt( value );
+		} else if ( key === 'lineHeight' ) {
+			typography.lineHeight = typeof value === 'number' ? String( value ) : value;
+		} else if ( key === 'letterSpacing' ) {
+			typography.letterSpacing = pt( value );
+		} else if ( key === 'align' && ! group ) {
+			typography.textAlign = value;
+		} else if ( key === 'upper' ) {
+			if ( value ) {
+				typography.textTransform = 'uppercase';
+			}
+		} else if ( key === 'color' ) {
+			color.text = value;
+		} else if ( key === 'fit' && type !== 'image' ) {
+			out.fitText = value;
+		} else if ( key === 'fill' ) {
+			color.background = value;
+		} else if ( key === 'stroke' ) {
+			border.color = value;
+		} else if ( key === 'strokeWidth' ) {
+			border.width = pt( value );
+		} else if ( key === 'dash' ) {
+			border.style = value;
+		} else if ( key === 'radius' && Array.isArray( value ) && value.length === 4 ) {
+			border.radius = value.every( ( corner ) => corner === value[ 0 ] ) ? pt( value[ 0 ] ) : Object.fromEntries( [ 'topLeft', 'topRight', 'bottomRight', 'bottomLeft' ].map( ( name, i ) => [ name, typeof value[ i ] === 'number' ? `${ value[ i ] }pt` : value[ i ] ] ) );
+		} else if ( key === 'arrange' && group ) {
+			out.arrange = arrangeTo( value, attrs.justify, attrs.align, attrs.columns );
+		} else if ( ( key === 'justify' || key === 'columns' || key === 'align' ) && group && attrs.arrange !== undefined ) {
+			continue;
+		} else if ( key === 'gap' ) {
+			spacing.blockGap = pt( value );
+		} else if ( key === 'padding' ) {
+			spacing.padding = pt( value );
+		} else if ( key === 'src' && type === 'image' ) {
+			out.url = value;
+		} else if ( key === 'ratio' && type === 'image' ) {
+			out.aspectRatio = value;
+		} else if ( key === 'fit' ) {
+			out.scale = value;
+		} else if ( ( key === 'code' || key === 'hint' ) ) {
+			out[ key ] = partTo( value );
+		} else {
+			out[ key ] = value;
+		}
+	}
+	const style: Attrs = {};
+	for ( const [ name, part ] of [ [ 'typography', typography ], [ 'color', color ], [ 'border', border ], [ 'spacing', spacing ], [ 'dimensions', dimensions ] ] as const ) {
+		if ( Object.keys( part ).length ) {
+			style[ name ] = part;
+		}
+	}
+	return {
+		...out,
+		...( Object.keys( metadata ).length ? { metadata } : {} ),
+		...( Object.keys( style ).length ? { style } : {} ),
+	};
 }
