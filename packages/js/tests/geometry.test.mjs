@@ -159,3 +159,14 @@ test( 'what is in a group is placed by the flow in a row, and by its own anchors
 	assert.deepEqual( [ free[ 0 ].x, free[ 0 ].w ], [ 5, 190 ] );
 } );
 
+
+test( 'a drawing that says no size on an axis is as big as its viewBox', () => {
+	const svg = { type: 'svg', vw: 24, vh: 12, layout: { h: { mode: 'start', start: '10pt' }, v: { mode: 'center', start: '0pt' } } };
+	const r = resolve( svg, page );
+	assert.deepEqual( [ r.x, r.w, r.h ], [ 10, 24, 12 ] );
+	assert.equal( r.y, ( 600 - 12 ) / 2, 'centered with its own height' );
+	const said = resolve( { ...svg, layout: { h: { mode: 'start', start: '10pt', size: '50pt' }, v: { mode: 'start', start: '0pt', size: '8pt' } } }, page );
+	assert.deepEqual( [ said.w, said.h ], [ 50, 8 ], 'a size that is said wins' );
+	const other = resolve( { type: 'rect', vw: 24, layout: { h: { mode: 'start', start: '0pt' }, v: { mode: 'start', start: '0pt' } } }, page );
+	assert.equal( other.w, 0, 'only a drawing has a size of its own' );
+} );

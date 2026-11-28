@@ -10,7 +10,7 @@ export type Box = { x: number; y: number; w: number; h: number };
 export type PageBox = { w: number; h: number; safe: number };
 
 /** What the anchors need of an element: its kind, its place and its anchors. A line has no place of its own. */
-export type Placeable = { type: string; x?: number; y?: number; w?: number; h?: number; layout?: Layout; lock?: number; ratio?: string };
+export type Placeable = { type: string; x?: number; y?: number; w?: number; h?: number; vw?: number; vh?: number; layout?: Layout; lock?: number; ratio?: string };
 
 export type CornerShape = 'round' | 'scoop' | 'bevel' | 'notch' | 'squircle';
 export type SvgPath = { d: string; fill?: string; rule?: 'nonzero' | 'evenodd' };
@@ -125,8 +125,10 @@ export function resolve< T extends Placeable >( el: T, page: PageBox, parent?: B
 		return el;
 	}
 	const r = refBox( page, layout.ref, parent );
-	let [ x, w ] = resolveAxis( layout.h, r.x, r.w );
-	let [ y, h ] = resolveAxis( layout.v, r.y, r.h );
+	// A drawing (svg) that says no size on an axis is as big as its viewBox (a unit of it is a point): the size is not written, only the anchors.
+	const own = ( axis: Axis, size?: number ) => ( el.type === 'svg' && axis.mode !== 'stretch' && axis.size === undefined && size ? size : undefined );
+	let [ x, w ] = resolveAxis( layout.h, r.x, r.w, own( layout.h, el.vw ) );
+	let [ y, h ] = resolveAxis( layout.v, r.y, r.h, own( layout.v, el.vh ) );
 	const ratio = lockedRatio( el );
 	const side = ratio ? lockedSide( layout ) : null;
 	if ( ratio && side === 'w' ) {
