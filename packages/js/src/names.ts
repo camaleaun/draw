@@ -95,7 +95,8 @@ export function toAttrs( element: Attrs, hostNames: Record< string, string > = {
 		if ( key === 'name' && fallback !== '' && value === fallback ) {
 			continue;
 		}
-		if ( key === 'id' && typeof value === 'string' && GENERATED_ID.test( value ) ) {
+		// An id that only counts is not written, and a group never says one: nothing points at a group (what is in it is placed by `ref: 'parent'`), and it is made again by position.
+		if ( key === 'id' && typeof value === 'string' && ( GENERATED_ID.test( value ) || element.type === 'group' ) ) {
 			continue;
 		}
 		if ( key === 'w' ) {

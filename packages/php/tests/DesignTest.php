@@ -183,6 +183,27 @@ final class DesignTest extends TestCase {
 		$this->assertNull( Design::from_markup( '{"elements":[]}' ), 'JSON of an earlier version.' );
 	}
 
+	public function test_a_group_says_no_id_in_a_file() {
+		$design = array(
+			'page'     => array( 'width' => '100mm', 'height' => '50mm' ),
+			'elements' => array(
+				array(
+					'id' => '0503d4b3-a2fc-431d-9417-5b874edb1ead', 'type' => 'group', 'x' => 0, 'y' => 0, 'w' => 50, 'h' => 20,
+					'children' => array(
+						array( 'id' => '0503d4b3-a2fc-431d-9417-5b874edb1ead-group-1', 'type' => 'group', 'x' => 0, 'y' => 0, 'w' => 10, 'h' => 10, 'children' => array( array( 'id' => 'signature', 'type' => 'signature', 'x' => 0, 'y' => 0, 'w' => 10, 'h' => 10 ) ) ),
+					),
+				),
+			),
+		);
+		$markup = Design::to_markup( $design );
+
+		$this->assertSame( 0, preg_match( '/draw\/group \{[^}]*"id"/', $markup ), 'No id on a group: ' . $markup );
+		$this->assertStringContainsString( '"id":"signature"', $markup, 'What means something stays.' );
+		$back = Design::from_markup( $markup );
+		$this->assertSame( 'group-1', $back['elements'][0]['id'], 'Made again by position.' );
+		$this->assertSame( 'group-1-group-1', $back['elements'][0]['children'][0]['id'] );
+	}
+
 	public function test_an_element_is_written_with_the_names_of_a_block() {
 		$design = array(
 			'page'     => array( 'width' => '100mm', 'height' => '50mm' ),

@@ -177,7 +177,8 @@ class Names {
 			if ( 'name' === $key && '' !== $default && $default === $value ) {
 				continue;
 			}
-			if ( 'id' === $key && is_string( $value ) && 1 === preg_match( self::GENERATED_ID, $value ) ) {
+			// An id that only counts is not written, and a group never says one: nothing points at a group (what is in it is placed by `ref: 'parent'`), and it is made again by position.
+			if ( 'id' === $key && is_string( $value ) && ( 1 === preg_match( self::GENERATED_ID, $value ) || 'group' === ( $element['type'] ?? '' ) ) ) {
 				continue;
 			}
 			if ( 'w' === $key ) {

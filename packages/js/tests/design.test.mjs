@@ -164,3 +164,21 @@ test( 'a type with a slot can have a block of its own, and the slot is what the 
 	assert.ok( markup.includes( '"slot":"other"' ), 'Another slot stays an attribute of the text.' );
 	assert.deepEqual( fromMarkup( markup, options ), design );
 } );
+
+test( 'a group says no id in a file (nothing points at it), whatever its id looks like; an element that means something keeps its own', () => {
+	const design = {
+		page: { width: '100mm', height: '50mm' },
+		elements: [
+			{ id: '0503d4b3-a2fc-431d-9417-5b874edb1ead', type: 'group', x: 0, y: 0, w: 50, h: 20, children: [
+				{ id: '0503d4b3-a2fc-431d-9417-5b874edb1ead-group-1', type: 'group', x: 0, y: 0, w: 10, h: 10, children: [ { id: 'signature', type: 'signature', x: 0, y: 0, w: 10, h: 10 } ] },
+				{ id: 'name', type: 'text', x: 0, y: 12, w: 40, h: 8, runs: [ { text: 'a' } ] },
+			] },
+		],
+	};
+	const markup = toMarkup( design );
+	assert.equal( /certificate-group[^>]*"id"|draw\/group[^>]*"id"/.test( markup ), false, 'no id on a group: ' + markup );
+	assert.ok( markup.includes( '"id":"signature"' ) && markup.includes( '"id":"name"' ), 'what means something stays' );
+	const back = fromMarkup( markup );
+	assert.equal( back.elements[ 0 ].id, 'group-1', 'made again by position' );
+	assert.equal( back.elements[ 0 ].children[ 0 ].id, 'group-1-group-1' );
+} );
