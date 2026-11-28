@@ -396,6 +396,10 @@ final class Clean {
 				$out['font'] = call_user_func( $this->env['font_name'], (string) ( $element['font'] ?? '' ) );
 				$number( 'weight', 100, 900 );
 				$number( 'size', 1, 1000 );
+				// The unit the size is shown in (the size itself stays in points); points are the default and are not written.
+				if ( in_array( $element['sizeUnit'] ?? '', array( 'px', 'mm', 'cm', 'in' ), true ) ) {
+					$out['sizeUnit'] = $element['sizeUnit'];
+				}
 				$color( 'color' );
 				if ( in_array( $element['align'] ?? '', array( 'left', 'center', 'right' ), true ) ) {
 					$out['align'] = $element['align'];

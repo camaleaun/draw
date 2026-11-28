@@ -60,6 +60,9 @@ types in the `names` option (`array( 'signature' => 'Signature', 'image:logo' =>
 A length an element is anchored by (`layout`: `start`, `end`, `size`) is written in the unit it was written in (`pt`, `px`, `mm`, `cm`, `in` or `%`): moving or resizing
 an element on the canvas changes the number, not the unit (two decimals, three in inches). `px` is the point (`UNITS.px` is 1), the same as in the page's lengths.
 
+A text's `size` is a number of points; `sizeUnit` (`px`, `mm`, `cm` or `in`) is the unit its field showed it in, kept beside it so the editor shows it the same way again. A size in points
+writes no `sizeUnit`, and one that is not a unit of ours is dropped. The size keeps every decimal it has (up to 1000 points).
+
 A rectangle's corner `radius` is a number (points) or a percentage of the shorter side (`"25%"`, 0 to 50%; 50% makes a pill or a circle): `radiusPt()` (TypeScript)
 and `Svg::radius()` (PHP). A color may be `currentColor`: the color of the text around it, which the host defines (the certificate's text color).
 

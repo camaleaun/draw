@@ -422,4 +422,28 @@ final class CleanTest extends TestCase {
 		$this->assertArrayNotHasKey( 'bleedUnit', $points );
 		$this->assertSame( '24pt', Page::stored( $points )['safe'] );
 	}
+
+	/**
+	 * A text keeps the unit its font size was shown in (px, mm, cm, in) beside the size, which stays in points; points are the default and write nothing, and what is not
+	 * a unit of ours is dropped. The size is kept with every decimal it has.
+	 */
+	public function test_a_text_keeps_the_unit_of_its_font_size() {
+		$text   = static function ( array $more ) {
+			return array(
+				'page'     => array( 'width' => '297mm', 'height' => '210mm' ),
+				'elements' => array( array_merge( array( 'id' => 'a', 'type' => 'text', 'x' => 0, 'y' => 0, 'w' => 100, 'h' => 20, 'runs' => array( array( 'text' => 'Hi' ) ) ), $more ) ),
+			);
+		};
+		foreach ( array( 'px', 'mm', 'cm', 'in' ) as $unit ) {
+			$out = $this->clean()->design( $text( array( 'size' => 12.47246, 'sizeUnit' => $unit ) ) )['elements'][0];
+			$this->assertSame( $unit, $out['sizeUnit'], $unit );
+			$this->assertSame( 12.47246, $out['size'] );
+		}
+		foreach ( array( 'pt', 'em', 'MM', 5, null, '' ) as $not ) {
+			$out = $this->clean()->design( $text( array( 'size' => 14, 'sizeUnit' => $not ) ) )['elements'][0];
+			$this->assertArrayNotHasKey( 'sizeUnit', $out, var_export( $not, true ) );
+		}
+		$out = $this->clean()->design( $text( array( 'size' => 12.12345679 ) ) )['elements'][0];
+		$this->assertSame( 12.12345679, $out['size'], 'No rounding.' );
+	}
 }
