@@ -29,6 +29,7 @@ const SHAPES = array(
 	'draw/image'   => 'image',
 	'draw/text'    => 'text',
 	'draw/svg'     => 'svg',
+	'draw/group'   => 'group',
 );
 
 /**
@@ -110,6 +111,10 @@ function render_shape( $name, $attributes, $content, $block ) {
 	if ( 'svg' === $element['type'] ) {
 		return Svg::nested( $element, $content );
 	}
+	if ( 'group' === $element['type'] ) {
+		// What the group's inner blocks drew goes inside it, from its corner.
+		return Svg::element( array( 'inner' => $content ) + $element, colors_of( $block ) );
+	}
 
 	return Svg::element( $element, colors_of( $block ) );
 }
@@ -166,7 +171,7 @@ add_action(
 					'api_version'     => 3,
 					'title'           => ucfirst( substr( $name, 5 ) ),
 					'category'        => 'design',
-					'parent'          => array( 'draw/frame' ), // A shape is only drawn inside a frame.
+					'parent'          => array( 'draw/frame', 'draw/group' ), // A shape is only drawn inside a frame (or a group in one).
 					'uses_context'    => array( 'draw/colors' ),
 					'attributes'      => array(
 						'x'       => array( 'type' => 'number' ),

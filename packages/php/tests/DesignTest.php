@@ -195,4 +195,40 @@ final class DesignTest extends TestCase {
 		$this->assertStringNotContainsString( '"name":"Signature"', $with );
 		$this->assertStringContainsString( '"name":"Band"', $with );
 	}
+
+	public function test_a_group_is_a_block_with_its_children_as_inner_blocks() {
+		$design = array(
+			'page'     => array( 'width' => '297mm', 'height' => '210mm' ),
+			'elements' => array(
+				array( 'type' => 'rect', 'w' => 10, 'h' => 10 ),
+				array(
+					'type'     => 'group',
+					'w'        => 200,
+					'h'        => 100,
+					'children' => array(
+						array( 'type' => 'rect', 'w' => 5, 'h' => 5 ),
+						array( 'type' => 'group', 'w' => 50, 'h' => 50, 'children' => array( array( 'type' => 'rect', 'w' => 1, 'h' => 1 ) ) ),
+					),
+				),
+			),
+		);
+		$markup = Design::to_markup( $design );
+		$this->assertStringContainsString( '<!-- wp:draw/group ', $markup );
+		$this->assertStringContainsString( '<!-- wp:draw/rect {"width":5,"height":5} /-->', $markup );
+		$this->assertStringNotContainsString( '"children"', $markup );
+		$back = Design::from_markup( $markup );
+		$this->assertSame( 'group', $back['elements'][1]['type'] );
+		$this->assertSame( 2, count( $back['elements'][1]['children'] ) );
+		$this->assertSame( 'group-2-group-2-rect-1', $back['elements'][1]['children'][1]['children'][0]['id'], 'Inside a group the id follows the one of the group.' );
+		$ids  = array();
+		$walk = static function ( $list ) use ( &$walk, &$ids ) {
+			foreach ( $list as $el ) {
+				$ids[] = $el['id'];
+				$walk( $el['children'] ?? array() );
+			}
+		};
+		$walk( $back['elements'] );
+		$this->assertSame( count( $ids ), count( array_unique( $ids ) ), implode( ',', $ids ) );
+		$this->assertEquals( $back, Design::from_markup( Design::to_markup( $back ) ) );
+	}
 }

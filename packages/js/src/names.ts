@@ -7,8 +7,8 @@
  */
 type Attrs = Record< string, unknown >;
 
-/** An id that only counts: a type and a number (`rect-2`), or the editor's (`svg-mwzbwe9c-1`). */
-export const GENERATED_ID = /^[a-z]+-(?:[a-z0-9]{6,9}-)?\d+$/;
+/** An id that only counts: a type and a number (`rect-2`), or the editor's (`svg-mwzbwe9c-1`); inside a group it follows the id of the group (`group-2-rect-1`). */
+export const GENERATED_ID = /^(?:[a-z]+-(?:[a-z0-9]{6,9}-)?\d+-)*[a-z]+-(?:[a-z0-9]{6,9}-)?\d+$/;
 
 const TEXT: Record< string, string > = { lh: 'lineHeight', ls: 'letterSpacing' };
 const AXES: Record< string, string > = { h: 'horizontal', v: 'vertical' };
@@ -43,7 +43,7 @@ function names( element: Attrs, full: boolean ): Attrs {
  * The name an element has when it is made, by type: it is not written, as the type already says it. A host adds its own (`names` option of `Design`),
  * by type or by `type:slot` (`image:logo`).
  */
-export const DEFAULT_NAMES: Record< string, string > = { text: 'Text', rect: 'Rectangle', ellipse: 'Ellipse', line: 'Line', image: 'Image', svg: 'SVG', qr: 'Authenticity', verification: 'Verification' };
+export const DEFAULT_NAMES: Record< string, string > = { text: 'Text', rect: 'Rectangle', ellipse: 'Ellipse', line: 'Line', image: 'Image', svg: 'SVG', group: 'Group', qr: 'Authenticity', verification: 'Verification' };
 
 /** The name an element has when it is made: the host's for its type and slot, else the type's. */
 export function defaultName( element: Attrs, hostNames: Record< string, string > = {} ): string {
@@ -95,19 +95,23 @@ export function fromAttrs( attrs: Attrs ): Attrs {
 	return out;
 }
 
-/** Gives an id (`<type>-<position>`) to the elements that have none; the ids that are there are kept. */
-export function withIds( elements: Attrs[] ): Attrs[] {
+/**
+ * Gives an id (`<type>-<position>`) to the elements that have none; the ids that are there are kept. What is in a group (`children`) is given its
+ * own, `<id of the group>-<type>-<position>`, so no id is on the page twice.
+ */
+export function withIds( elements: Attrs[], prefix = '' ): Attrs[] {
 	const taken = new Set( elements.map( ( el ) => el.id ).filter( Boolean ) as string[] );
 	return elements.map( ( el, i ) => {
-		if ( el.id ) {
-			return el;
+		let out = el;
+		if ( ! el.id ) {
+			const type = String( el.type || 'element' );
+			let n = i + 1;
+			while ( taken.has( `${ prefix }${ type }-${ n }` ) ) {
+				n++;
+			}
+			taken.add( `${ prefix }${ type }-${ n }` );
+			out = { ...el, id: `${ prefix }${ type }-${ n }` };
 		}
-		const type = String( el.type || 'element' );
-		let n = i + 1;
-		while ( taken.has( `${ type }-${ n }` ) ) {
-			n++;
-		}
-		taken.add( `${ type }-${ n }` );
-		return { ...el, id: `${ type }-${ n }` };
+		return Array.isArray( out.children ) ? { ...out, children: withIds( out.children as Attrs[], `${ out.id }-` ) } : out;
 	} );
 }

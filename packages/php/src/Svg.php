@@ -128,8 +128,21 @@ final class Svg {
 		}
 		switch ( $type ) {
 			case 'rect':
+			case 'group':
 				$r      = is_array( $el['radius'] ?? null ) ? self::radius( $el['radius'][0] ?? 0, (float) $w, (float) $h ) : 0.0;
 				$inside = sprintf( '<rect x="%s" y="%s" width="%s" height="%s"%s%s/>', self::n( $x ), self::n( $y ), self::n( $w ), self::n( $h ), $r > 0 ? ' rx="' . self::n( $r ) . '"' : '', $attrs );
+				if ( 'group' === $type ) {
+					// What is in a group is placed from its corner (a nested SVG moves the origin there) and clipped to its box, unless the group says not (`clip` false).
+					$inner = '';
+					if ( isset( $el['inner'] ) && is_string( $el['inner'] ) ) {
+						$inner = $el['inner'];
+					} else {
+						foreach ( (array) ( $el['children'] ?? array() ) as $child ) {
+							$inner .= is_array( $child ) ? self::element( $child, $colors, $image ) : '';
+						}
+					}
+					$inside .= sprintf( '<svg x="%s" y="%s" width="%s" height="%s" overflow="%s">%s</svg>', self::n( $x ), self::n( $y ), self::n( $w ), self::n( $h ), false === ( $el['clip'] ?? true ) ? 'visible' : 'hidden', $inner );
+				}
 				break;
 			case 'ellipse':
 				$inside = sprintf( '<ellipse cx="%s" cy="%s" rx="%s" ry="%s"%s/>', self::n( $x + $w / 2 ), self::n( $y + $h / 2 ), self::n( $w / 2 ), self::n( $h / 2 ), $attrs );

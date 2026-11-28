@@ -10,7 +10,7 @@ import { __ } from '@wordpress/i18n';
 import { DrawCanvas } from '@camaleaun/draw-editor';
 import { parseLen } from '@camaleaun/draw';
 
-const SHAPES = [ 'draw/rect', 'draw/ellipse', 'draw/line', 'draw/path', 'draw/image', 'draw/text', 'draw/svg' ];
+const SHAPES = [ 'draw/rect', 'draw/ellipse', 'draw/line', 'draw/path', 'draw/image', 'draw/text', 'draw/svg', 'draw/group' ];
 const NUMBERS = [ 'x', 'y', 'width', 'height' ];
 
 function field( props: any, key: string, label: string ) {
@@ -61,9 +61,10 @@ SHAPES.forEach( ( name ) => {
 				</InspectorControls>
 				<strong>{ name.replace( 'draw/', '' ) }</strong>
 				{ name === 'draw/svg' ? <InnerBlocks allowedBlocks={ [ 'draw/svg-path' ] } /> : null }
+				{ name === 'draw/group' ? <InnerBlocks allowedBlocks={ SHAPES } /> : null }
 			</div>
 		),
-		save: () => ( name === 'draw/svg' ? <InnerBlocks.Content /> : null ),
+		save: () => ( name === 'draw/svg' || name === 'draw/group' ? <InnerBlocks.Content /> : null ),
 	} as any );
 } );
 

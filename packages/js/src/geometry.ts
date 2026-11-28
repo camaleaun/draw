@@ -17,7 +17,8 @@ export type SvgPath = { d: string; fill?: string; rule?: 'nonzero' | 'evenodd' }
 
 export type AxisMode = 'start' | 'center' | 'end' | 'stretch';
 export type Axis = { mode: AxisMode; start?: string; end?: string; size?: string };
-export type Layout = { h: Axis; v: Axis; ref?: 'page' | 'safe' };
+/** The box an element is anchored to: the page, its safe margin, or (inside a group) the group's own box, whose corner is 0,0. */
+export type Layout = { h: Axis; v: Axis; ref?: 'page' | 'safe' | 'parent' };
 
 export const UNITS: Record< string, number > = { pt: 1, px: 1, mm: 2.83465, cm: 28.3465, in: 72 };
 
@@ -90,8 +91,14 @@ export function isLen( value: string ): boolean {
 	return /^-?\d*\.?\d+\s*(pt|px|mm|cm|in|%)?$/.test( v ) || /^calc\(\s*-?\d*\.?\d+\s*(pt|px|mm|cm|in|%)?(\s*[+-]\s*\d*\.?\d+\s*(pt|px|mm|cm|in|%)?)*\s*\)$/.test( v );
 }
 
-/** The box an element is anchored to. */
-export function refBox( page: PageBox, ref?: 'page' | 'safe' ): Box {
+/**
+ * The box an element is anchored to. Inside a group `parent` is the group's box with its corner at 0,0 (what is in a group is placed from the group's
+ * top-left corner); with no parent (an element that is not in a group) it is the page.
+ */
+export function refBox( page: PageBox, ref?: 'page' | 'safe' | 'parent', parent?: Box ): Box {
+	if ( ref === 'parent' && parent ) {
+		return { x: 0, y: 0, w: parent.w, h: parent.h };
+	}
 	return ref === 'safe' ? { x: page.safe, y: page.safe, w: page.w - page.safe * 2, h: page.h - page.safe * 2 } : { x: 0, y: 0, w: page.w, h: page.h };
 }
 
@@ -111,13 +118,13 @@ function resolveAxis( axis: Axis, origin: number, total: number, forced?: number
 	}
 }
 
-/** An element with its anchors resolved to x, y, w, h in pt (elements without anchors are returned as they are). */
-export function resolve< T extends Placeable >( el: T, page: PageBox ): T {
+/** An element with its anchors resolved to x, y, w, h in pt (elements without anchors are returned as they are); `parent` is the box of the group it is in. */
+export function resolve< T extends Placeable >( el: T, page: PageBox, parent?: Box ): T {
 	const layout = ( el as { layout?: Layout } ).layout;
 	if ( ! layout || el.type === 'line' ) {
 		return el;
 	}
-	const r = refBox( page, layout.ref );
+	const r = refBox( page, layout.ref, parent );
 	let [ x, w ] = resolveAxis( layout.h, r.x, r.w );
 	let [ y, h ] = resolveAxis( layout.v, r.y, r.h );
 	const ratio = lockedRatio( el );
@@ -184,18 +191,18 @@ function axisFrom( axis: Axis, pos: number, size: number, origin: number, total:
 }
 
 /** The anchors that put an element at a box (after dragging or resizing on the canvas). */
-export function layoutFrom( layout: Layout, b: Box, page: PageBox ): Layout {
-	const r = refBox( page, layout.ref );
+export function layoutFrom( layout: Layout, b: Box, page: PageBox, parent?: Box ): Layout {
+	const r = refBox( page, layout.ref, parent );
 	return { ...layout, h: axisFrom( layout.h, b.x, b.w, r.x, r.w ), v: axisFrom( layout.v, b.y, b.h, r.y, r.h ) };
 }
 
 /** An element placed at a box: absolute elements take the numbers, anchored ones update their anchors. */
-export function placed< T extends Placeable >( stored: T, b: Box, page: PageBox ): T {
+export function placed< T extends Placeable >( stored: T, b: Box, page: PageBox, parent?: Box ): T {
 	const layout = ( stored as { layout?: Layout } ).layout;
 	if ( stored.type === 'line' ) {
 		return stored;
 	}
-	return layout ? { ...stored, layout: layoutFrom( layout, b, page ) } : { ...stored, x: b.x, y: b.y, w: b.w, h: b.h };
+	return layout ? { ...stored, layout: layoutFrom( layout, b, page, parent ) } : { ...stored, x: b.x, y: b.y, w: b.w, h: b.h };
 }
 
 

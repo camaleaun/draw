@@ -18,6 +18,7 @@ namespace Camaleaun\Draw;
 final class Clean {
 
 	const MAX_ELEMENTS  = 300;
+	const MAX_DEPTH     = 3;
 	const MAX_BYTES     = 2097152;
 	const MAX_COLORS    = 60;
 	const MAX_RUNS      = 80;
@@ -29,6 +30,20 @@ final class Clean {
 	 * @var array<string, mixed>
 	 */
 	private $env;
+
+	/**
+	 * How many elements may still be taken, all the groups counted (reset for each list of elements of a design).
+	 *
+	 * @var int
+	 */
+	private $budget = self::MAX_ELEMENTS;
+
+	/**
+	 * How many groups deep the cleaning is.
+	 *
+	 * @var int
+	 */
+	private $depth = 0;
 
 	/**
 	 * @param array<string, mixed> $env upload_url, font_name, attachment_is_image (callables, each optional: the default allows no picture,
@@ -200,7 +215,7 @@ final class Clean {
 				}
 			}
 		}
-		if ( in_array( $layout['ref'] ?? '', array( 'page', 'safe' ), true ) ) {
+		if ( in_array( $layout['ref'] ?? '', array( 'page', 'safe', 'parent' ), true ) ) {
 			$out['ref'] = $layout['ref'];
 		}
 
@@ -243,7 +258,7 @@ final class Clean {
 	 */
 	public function element( $element, array &$notes = array() ) {
 		$type = is_array( $element ) ? ( $element['type'] ?? '' ) : '';
-		if ( ! in_array( $type, array( 'text', 'rect', 'ellipse', 'path', 'line', 'image', 'qr', 'svg', 'verification' ), true ) && ! isset( $this->env['types'][ $type ] ) ) {
+		if ( ! in_array( $type, array( 'text', 'rect', 'ellipse', 'path', 'line', 'image', 'qr', 'svg', 'verification', 'group' ), true ) && ! isset( $this->env['types'][ $type ] ) ) {
 			return null;
 		}
 		$id = $this->clean_key( $element['id'] ?? '', 64 );
@@ -361,6 +376,7 @@ final class Clean {
 				}
 				break;
 			case 'rect':
+			case 'group':
 				$color( 'fill' );
 				$color( 'stroke' );
 				$number( 'strokeWidth', 0, 500 );
@@ -377,6 +393,13 @@ final class Clean {
 				}
 				if ( in_array( $element['corner'] ?? '', array( 'round', 'scoop', 'bevel', 'notch', 'squircle' ), true ) ) {
 					$out['corner'] = $element['corner'];
+				}
+				if ( 'group' === $type ) {
+					// A group clips what is in it to its box, unless it says it does not (only the exception is written).
+					if ( false === ( $element['clip'] ?? true ) ) {
+						$out['clip'] = false;
+					}
+					$out['children'] = $this->clean_children( $element['children'] ?? array(), $notes );
 				}
 				break;
 			case 'ellipse':
@@ -489,8 +512,55 @@ final class Clean {
 	 * @return array<int, array<string, mixed>>
 	 */
 	private function clean_elements( $elements, array &$notes ) {
+		// At most MAX_ELEMENTS in all, what is in groups too.
+		$this->budget = self::MAX_ELEMENTS;
+		$this->depth  = 0;
+
+		return $this->clean_list( $elements, $notes, false );
+	}
+
+	/**
+	 * What is in a group: elements, but not the ones that only have a place on the certificate itself (the authenticity code, the verification block, the
+	 * signature), and not deeper than MAX_DEPTH groups.
+	 *
+	 * @param mixed                $elements Elements.
+	 * @param array<string, mixed> $notes    What was removed (filled).
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function clean_children( $elements, array &$notes ) {
+		if ( $this->depth >= self::MAX_DEPTH ) {
+			$notes['elements'] = ( $notes['elements'] ?? 0 ) + ( is_array( $elements ) ? count( $elements ) : 0 );
+
+			return array();
+		}
+		++$this->depth;
+		$out = $this->clean_list( $elements, $notes, true );
+		--$this->depth;
+
+		return $out;
+	}
+
+	/**
+	 * A list of elements, taking from what is left of the budget.
+	 *
+	 * @param mixed                $elements Elements.
+	 * @param array<string, mixed> $notes    What was removed (filled).
+	 * @param bool                 $inner    Whether they are in a group.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function clean_list( $elements, array &$notes, $inner ) {
 		$out = array();
-		foreach ( array_slice( is_array( $elements ) ? array_values( $elements ) : array(), 0, self::MAX_ELEMENTS ) as $element ) {
+		foreach ( is_array( $elements ) ? array_values( $elements ) : array() as $element ) {
+			if ( $this->budget <= 0 ) {
+				$notes['elements'] = ( $notes['elements'] ?? 0 ) + 1;
+				continue;
+			}
+			$kind = is_array( $element ) ? ( $element['type'] ?? '' ) : '';
+			if ( $inner && ( in_array( $kind, array( 'qr', 'verification' ), true ) || 'signature' === ( is_array( $element ) ? ( $element['slot'] ?? '' ) : '' ) ) ) {
+				$notes['elements'] = ( $notes['elements'] ?? 0 ) + 1;
+				continue;
+			}
+			--$this->budget;
 			$clean = $this->element( $element, $notes );
 			if ( null === $clean ) {
 				$notes['elements'] = ( $notes['elements'] ?? 0 ) + 1;

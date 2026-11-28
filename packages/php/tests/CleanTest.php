@@ -212,4 +212,104 @@ final class CleanTest extends TestCase {
 		$this->assertSame( 'currentColor', $rect['fill'] );
 		$this->assertSame( '#00000000', $rect['stroke'] );
 	}
+
+	private function group( $id, array $children = array(), array $more = array() ) {
+		return array(
+			'id'       => $id,
+			'type'     => 'group',
+			'x'        => 10,
+			'y'        => 10,
+			'w'        => 200,
+			'h'        => 100,
+			'fill'     => '#ffffff',
+			'children' => $children,
+		) + $more;
+	}
+
+	public function test_a_group_has_its_own_box_and_what_is_in_it() {
+		$notes = array();
+		$out   = $this->clean()->element(
+			$this->group(
+				'group-1',
+				array(
+					array(
+						'id'     => 'group-1-rect-1',
+						'type'   => 'rect',
+						'w'      => 50,
+						'h'      => 20,
+						'layout' => array(
+							'ref' => 'parent',
+							'h'   => array( 'mode' => 'stretch', 'start' => '5pt', 'end' => '5pt' ),
+							'v'   => array( 'mode' => 'start', 'start' => '5pt', 'size' => '20pt' ),
+						),
+					),
+				),
+				array( 'clip' => false, 'stroke' => '#000000', 'radius' => array( 8, '25%' ) )
+			),
+			$notes
+		);
+		$this->assertSame( 'group', $out['type'] );
+		$this->assertFalse( $out['clip'] );
+		$this->assertSame( array( 8, '25%' ), $out['radius'] );
+		$this->assertSame( 'parent', $out['children'][0]['layout']['ref'] );
+		$this->assertSame( 'group-1-rect-1', $out['children'][0]['id'] );
+		$out = $this->clean()->element( $this->group( 'group-2' ) );
+		$this->assertArrayNotHasKey( 'clip', $out, 'Clipping is the default: only the exception is written.' );
+	}
+
+	public function test_a_group_does_not_hold_the_code_the_verification_or_the_signature() {
+		$notes = array();
+		$design = $this->clean()->design(
+			array(
+				'page'     => array( 'w' => 800, 'h' => 600 ),
+				'elements' => array(
+					$this->group(
+						'group-1',
+						array(
+							array( 'id' => 'a', 'type' => 'qr', 'w' => 10, 'h' => 10 ),
+							array( 'id' => 'b', 'type' => 'verification', 'w' => 10, 'h' => 10 ),
+							array( 'id' => 'c', 'type' => 'image', 'slot' => 'signature', 'src' => '' ),
+							array( 'id' => 'd', 'type' => 'rect', 'w' => 10, 'h' => 10 ),
+						)
+					),
+				),
+			),
+			$notes
+		);
+		$this->assertSame( array( 'd' ), array_column( $design['elements'][0]['children'], 'id' ) );
+		$this->assertSame( 3, $notes['elements'] );
+	}
+
+	public function test_groups_go_three_deep_and_all_the_elements_are_300() {
+		$deep = array( 'id' => 'g4', 'type' => 'rect', 'w' => 1, 'h' => 1 );
+		$tree = $this->group( 'g1', array( $this->group( 'g2', array( $this->group( 'g3', array( $this->group( 'g4', array( $deep ) ) ) ) ) ) ) );
+		$out  = $this->clean()->design(
+			array(
+				'page'     => array( 'w' => 800, 'h' => 600 ),
+				'elements' => array( $tree ),
+			)
+		);
+		$g3 = $out['elements'][0]['children'][0]['children'][0];
+		$this->assertSame( 'g3', $g3['id'] );
+		$this->assertSame( array(), $g3['children'][0]['children'], 'The fourth level of groups is empty.' );
+		$many = array();
+		for ( $i = 0; $i < 200; $i++ ) {
+			$many[] = array( 'id' => 'a' . $i, 'type' => 'rect', 'w' => 1, 'h' => 1 );
+		}
+		$out   = $this->clean()->design(
+			array(
+				'page'     => array( 'w' => 800, 'h' => 600 ),
+				'elements' => array_merge( $many, array( $this->group( 'g', $many ) ) ),
+			)
+		);
+		$count = 0;
+		$walk  = static function ( $list ) use ( &$walk, &$count ) {
+			foreach ( $list as $el ) {
+				++$count;
+				$walk( $el['children'] ?? array() );
+			}
+		};
+		$walk( $out['elements'] );
+		$this->assertSame( 300, $count );
+	}
 }

@@ -439,7 +439,7 @@
   var round = (n) => Math.round(n * 100) / 100;
 
   // plugins/draw/src/index.tsx
-  var SHAPES2 = ["draw/rect", "draw/ellipse", "draw/line", "draw/path", "draw/image", "draw/text", "draw/svg"];
+  var SHAPES2 = ["draw/rect", "draw/ellipse", "draw/line", "draw/path", "draw/image", "draw/text", "draw/svg", "draw/group"];
   var NUMBERS = ["x", "y", "width", "height"];
   function field(props, key, label) {
     return /* @__PURE__ */ (0, import_element3.createElement)(
@@ -463,8 +463,8 @@
   });
   SHAPES2.forEach((name) => {
     (0, import_blocks2.registerBlockType)(name, {
-      edit: (props) => /* @__PURE__ */ (0, import_element3.createElement)("div", { ...(0, import_block_editor2.useBlockProps)({ className: "draw-shape" }) }, /* @__PURE__ */ (0, import_element3.createElement)(import_block_editor2.InspectorControls, null, /* @__PURE__ */ (0, import_element3.createElement)(import_components2.PanelBody, { title: (0, import_i18n2.__)("Place and color", "draw") }, field(props, "x", "x"), field(props, "y", "y"), field(props, "width", (0, import_i18n2.__)("Width", "draw")), field(props, "height", (0, import_i18n2.__)("Height", "draw")), field(props, "fill", (0, import_i18n2.__)("Fill", "draw")))), /* @__PURE__ */ (0, import_element3.createElement)("strong", null, name.replace("draw/", "")), name === "draw/svg" ? /* @__PURE__ */ (0, import_element3.createElement)(import_block_editor2.InnerBlocks, { allowedBlocks: ["draw/svg-path"] }) : null),
-      save: () => name === "draw/svg" ? /* @__PURE__ */ (0, import_element3.createElement)(import_block_editor2.InnerBlocks.Content, null) : null
+      edit: (props) => /* @__PURE__ */ (0, import_element3.createElement)("div", { ...(0, import_block_editor2.useBlockProps)({ className: "draw-shape" }) }, /* @__PURE__ */ (0, import_element3.createElement)(import_block_editor2.InspectorControls, null, /* @__PURE__ */ (0, import_element3.createElement)(import_components2.PanelBody, { title: (0, import_i18n2.__)("Place and color", "draw") }, field(props, "x", "x"), field(props, "y", "y"), field(props, "width", (0, import_i18n2.__)("Width", "draw")), field(props, "height", (0, import_i18n2.__)("Height", "draw")), field(props, "fill", (0, import_i18n2.__)("Fill", "draw")))), /* @__PURE__ */ (0, import_element3.createElement)("strong", null, name.replace("draw/", "")), name === "draw/svg" ? /* @__PURE__ */ (0, import_element3.createElement)(import_block_editor2.InnerBlocks, { allowedBlocks: ["draw/svg-path"] }) : null, name === "draw/group" ? /* @__PURE__ */ (0, import_element3.createElement)(import_block_editor2.InnerBlocks, { allowedBlocks: SHAPES2 }) : null),
+      save: () => name === "draw/svg" || name === "draw/group" ? /* @__PURE__ */ (0, import_element3.createElement)(import_block_editor2.InnerBlocks.Content, null) : null
     });
   });
   (0, import_blocks2.registerBlockType)("draw/svg-path", {

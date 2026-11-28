@@ -19,7 +19,7 @@ class Names {
 	/**
 	 * An id that only counts: a type and a number (`rect-2`), or the editor's (`svg-mwzbwe9c-1`).
 	 */
-	const GENERATED_ID = '/^[a-z]+-(?:[a-z0-9]{6,9}-)?\d+$/';
+	const GENERATED_ID = '/^(?:[a-z]+-(?:[a-z0-9]{6,9}-)?\d+-)*[a-z]+-(?:[a-z0-9]{6,9}-)?\d+$/';
 
 	/**
 	 * The name an element has when it is made, by type: it is not written, as the type already says it. A host adds its own (`names` option of `Design`),
@@ -32,6 +32,7 @@ class Names {
 		'line'         => 'Line',
 		'image'        => 'Image',
 		'svg'          => 'SVG',
+		'group'        => 'Group',
 		'qr'           => 'Authenticity',
 		'verification' => 'Verification',
 	);
@@ -170,12 +171,14 @@ class Names {
 	}
 
 	/**
-	 * Gives an id (`<type>-<position>`) to the elements that have none; the ids that are there are kept.
+	 * Gives an id (`<type>-<position>`) to the elements that have none; the ids that are there are kept. What is in a group (`children`) gets
+	 * `<id of the group>-<type>-<position>`.
 	 *
 	 * @param array<int, array<string, mixed>> $elements Elements read from a file.
+	 * @param string                           $prefix   What an id starts with (the group's id and a dash).
 	 * @return array<int, array<string, mixed>>
 	 */
-	public static function with_ids( array $elements ) {
+	public static function with_ids( array $elements, $prefix = '' ) {
 		$taken = array();
 		foreach ( $elements as $element ) {
 			if ( isset( $element['id'] ) ) {
@@ -183,16 +186,19 @@ class Names {
 			}
 		}
 		foreach ( $elements as $i => $element ) {
-			if ( isset( $element['id'] ) && '' !== $element['id'] ) {
-				continue;
+			if ( ! isset( $element['id'] ) || '' === $element['id'] ) {
+				$n    = $i + 1;
+				$type = (string) ( $element['type'] ?? 'element' );
+				while ( isset( $taken[ $prefix . $type . '-' . $n ] ) ) {
+					++$n;
+				}
+				$elements[ $i ]['id']                    = $prefix . $type . '-' . $n;
+				$taken[ $prefix . $type . '-' . $n ] = true;
 			}
-			$n    = $i + 1;
-			$type = (string) ( $element['type'] ?? 'element' );
-			while ( isset( $taken[ $type . '-' . $n ] ) ) {
-				++$n;
+			// What is in a group has ids of its own, after the group's, so no id is on the page twice.
+			if ( is_array( $elements[ $i ]['children'] ?? null ) ) {
+				$elements[ $i ]['children'] = self::with_ids( $elements[ $i ]['children'], $elements[ $i ]['id'] . '-' );
 			}
-			$elements[ $i ]['id']            = $type . '-' . $n;
-			$taken[ $type . '-' . $n ]       = true;
 		}
 
 		return $elements;

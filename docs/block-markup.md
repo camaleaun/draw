@@ -5,10 +5,15 @@
 | `draw/frame` | The drawing: `width`, `height` (lengths) and `colors` (variable → color) | the shapes |
 | `draw/rect` `draw/ellipse` `draw/line` `draw/path` `draw/image` `draw/text` | a shape, with `x y w h` in points and its own attributes (`fill`, `stroke`, `runs`, `src`…) | — |
 | `draw/svg` | a group drawn as a nested SVG (`vw`, `vh`, and `w`, `h` when it prefers a size) | `draw/svg-path` |
+| `draw/group` | a box like `draw/rect` (`fill`, `stroke`, `strokeWidth`, `radius`, `corner`) that holds other shapes; they are placed from its top-left corner, and clipped to it unless `clip` is `false` | the shapes (any, but `-qr`, `-verification` and a signature; up to 3 groups deep, 300 elements in all) |
 | `draw/svg-path` | one filled path: `d`, `fill`, `rule` | — |
 | `events-certificates/certificate` | the root of a certificate (page, colors, palette, sample…) | the shapes, `-qr`, `-verification`, `-back` |
 
-A shape can only be inside a frame (the editor enforces it, and the plugin draws nothing for a shape that is not in one).
+A shape can only be inside a frame, or a group in one (the editor enforces it, and the plugin draws nothing for a shape that is not in one).
+
+**What is in a group** is placed from the group's top-left corner, and its anchors (`layout`, with `"ref":"parent"`) are to the size of the group:
+`x`, `y`, a length in `%` and "fill" (stretch) are of the group's box, not of the page. A group's elements have ids that follow the group's
+(`group-2-rect-1`), made again by position when the file is read, like any id.
 
 A **design** is the array an editor and a renderer work on; `Design::to_markup()` writes it as blocks and `Design::from_markup()` reads it
 back, in PHP and in TypeScript (`toMarkup()`, `fromMarkup()`), with the same result.

@@ -27,6 +27,7 @@ export const BLOCKS: Record< string, string > = {
 	line: 'draw/line',
 	image: 'draw/image',
 	svg: 'draw/svg',
+	group: 'draw/group',
 	qr: 'events-certificates/certificate-qr',
 	verification: 'events-certificates/certificate-verification',
 };
@@ -52,6 +53,11 @@ function blocks( elements: unknown, o: Resolved ): Block[] {
 		const { type, ...attrs } = toAttrs( element, o.names );
 		const kind = String( element.type ?? '' );
 		let children: Block[] = [];
+		if ( kind === 'group' ) {
+			// What is in a group is its inner blocks (blocks all the way down).
+			delete attrs.children;
+			children = blocks( element.children, o );
+		}
 		if ( kind === 'svg' && o.paths === 'inner' && Array.isArray( element.paths ) ) {
 			delete attrs.paths;
 			children = element.paths.map( ( path ) => ( { name: PATH, attrs: isObject( path ) ? path : {}, children: [] } ) );
@@ -72,6 +78,9 @@ function element( block: Block, o: Resolved ): Attrs {
 	}
 	const type = Object.keys( o.blocks ).find( ( key ) => o.blocks[ key ] === block.name ) ?? '';
 	const out: Attrs = { type, ...fromAttrs( block.attrs ) };
+	if ( type === 'group' ) {
+		out.children = block.children.map( ( child ) => element( child, o ) );
+	}
 	if ( type === 'svg' && o.paths === 'inner' && out.markup === undefined ) {
 		out.paths = block.children.filter( ( child ) => child.name === PATH ).map( ( child ) => child.attrs );
 	}

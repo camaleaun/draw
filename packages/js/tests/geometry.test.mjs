@@ -103,3 +103,19 @@ test( 'a corner radius is points or a percentage of the shorter side, 0 to 50%',
 	assert.equal( rectPath( 0, 0, 100, 40, [ '50%', 0, 0, '50%' ] ), rectPath( 0, 0, 100, 40, [ 20, 0, 0, 20 ] ), 'the same path as the radius in points' );
 } );
 
+test( 'inside a group an element is placed from the corner of the group, and anchored to its size', () => {
+	const group = { x: 100, y: 50, w: 200, h: 100 };
+	const el = { type: 'rect', layout: { ref: 'parent', h: { mode: 'stretch', start: '10pt', end: '10pt' }, v: { mode: 'start', start: '5pt', size: '40pt' } } };
+	const r = resolve( el, page, group );
+	assert.deepEqual( [ r.x, r.w, r.y, r.h ], [ 10, 180, 5, 40 ], 'relative to the group, not the page' );
+	assert.deepEqual( refBox( page, 'parent', group ), { x: 0, y: 0, w: 200, h: 100 } );
+	const half = { type: 'rect', layout: { ref: 'parent', h: { mode: 'start', start: '50%', size: '25%' }, v: { mode: 'center', start: '0pt', size: '50%' } } };
+	const q = resolve( half, page, group );
+	assert.deepEqual( [ q.x, q.w, q.y, q.h ], [ 100, 50, 25, 50 ] );
+	const moved = placed( el, { x: 20, y: 10, w: 160, h: 40 }, page, group );
+	assert.equal( moved.layout.h.start, '20pt' );
+	assert.equal( moved.layout.h.end, '20pt' );
+	// With no group the parent is the page.
+	assert.deepEqual( refBox( page, 'parent' ), { x: 0, y: 0, w: 800, h: 600 } );
+} );
+

@@ -43,6 +43,7 @@ final class Design {
 		'line'         => 'draw/line',
 		'image'        => 'draw/image',
 		'svg'          => 'draw/svg',
+		'group'        => 'draw/group',
 		'qr'           => 'events-certificates/certificate-qr',
 		'verification' => 'events-certificates/certificate-verification',
 	);
@@ -152,6 +153,11 @@ final class Design {
 			$attrs = Names::to_attrs( $element, $options['names'] );
 			unset( $attrs['type'] );
 			$children = array();
+			if ( 'group' === $type ) {
+				// What is in a group is its inner blocks (blocks all the way down).
+				unset( $attrs['children'] );
+				$children = self::blocks( is_array( $element['children'] ?? null ) ? $element['children'] : array(), $options );
+			}
 			if ( 'svg' === $type && 'inner' === $options['paths'] && is_array( $element['paths'] ?? null ) ) {
 				unset( $attrs['paths'] );
 				foreach ( $element['paths'] as $path ) {
@@ -210,6 +216,9 @@ final class Design {
 		}
 		$type    = (string) array_search( $block['name'], $options['blocks'], true );
 		$element = array( 'type' => $type ) + Names::from_attrs( $block['attrs'] );
+		if ( 'group' === $type ) {
+			$element['children'] = self::elements( $block['children'], $options );
+		}
 		if ( 'svg' === $type && 'inner' === $options['paths'] && ! isset( $element['markup'] ) ) {
 			$element['paths'] = array();
 			foreach ( $block['children'] as $path ) {

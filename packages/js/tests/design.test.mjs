@@ -111,3 +111,27 @@ test( 'the default name of an element is not written, the name a host adds eithe
 	assert.ok( withHost.includes( '"name":"Band"' ) );
 } );
 
+test( 'a group keeps what is in it as inner blocks, down to the last level, and every id is its own', () => {
+	const design = {
+		page: { width: '297mm', height: '210mm' },
+		elements: [
+			{ type: 'rect', w: 10, h: 10 },
+			{ type: 'group', fill: '#fff', w: 200, h: 100, children: [ { type: 'rect', w: 5, h: 5 }, { type: 'group', w: 50, h: 50, children: [ { type: 'rect', w: 1, h: 1 } ] } ] },
+		],
+	};
+	const markup = toMarkup( design );
+	assert.match( markup, /<!-- wp:draw\/group /, 'the group is a block' );
+	assert.match( markup, /<!-- wp:draw\/rect \{"width":5,"height":5\} \/-->/, 'its children are inner blocks' );
+	assert.ok( ! markup.includes( '"children"' ), 'children is not an attribute' );
+	const back = fromMarkup( markup );
+	const group = back.elements[ 1 ];
+	assert.equal( group.type, 'group' );
+	assert.equal( group.children.length, 2 );
+	assert.equal( group.children[ 1 ].children[ 0 ].w, 1 );
+	const ids = [];
+	const walk = ( list ) => list.forEach( ( el ) => { ids.push( el.id ); walk( el.children || [] ); } );
+	walk( back.elements );
+	assert.equal( new Set( ids ).size, ids.length, 'no id twice: ' + ids.join( ',' ) );
+	assert.deepEqual( fromMarkup( toMarkup( back ) ), back, 'the trip is the same' );
+} );
+

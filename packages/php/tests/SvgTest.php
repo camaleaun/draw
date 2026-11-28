@@ -64,4 +64,22 @@ final class SvgTest extends TestCase {
 		$this->assertSame( 20.0, Svg::radius( '80%', 100.0, 40.0 ) );
 		$this->assertSame( 0.0, Svg::radius( 'abc', 100.0, 40.0 ) );
 	}
+
+	public function test_a_group_draws_its_box_and_what_is_in_it_from_its_corner() {
+		$svg = Svg::element(
+			array(
+				'type'     => 'group',
+				'x'        => 100,
+				'y'        => 50,
+				'w'        => 200,
+				'h'        => 80,
+				'fill'     => '#eeeeee',
+				'children' => array( array( 'type' => 'rect', 'x' => 10, 'y' => 5, 'w' => 20, 'h' => 10, 'fill' => '#ff0000' ) ),
+			)
+		);
+		$this->assertStringContainsString( '<rect x="100" y="50" width="200" height="80" fill="#eeeeee"/>', $svg );
+		$this->assertStringContainsString( '<svg x="100" y="50" width="200" height="80" overflow="hidden"><rect x="10" y="5" width="20" height="10" fill="#ff0000"/></svg>', $svg );
+		$open = Svg::element( array( 'type' => 'group', 'x' => 0, 'y' => 0, 'w' => 10, 'h' => 10, 'clip' => false, 'children' => array() ) );
+		$this->assertStringContainsString( 'overflow="visible"', $open );
+	}
 }
