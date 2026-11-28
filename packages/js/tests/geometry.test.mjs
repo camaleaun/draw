@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { lineHeightFactor, letterSpacingPt, placeChildren, flowBoxes, radiusPt, pageSize, parseLen, isLen, refBox, resolve, placed, layoutFrom, lockedRatio, rectPath, svgCodeAllowed, isPathData, isFill } from '../dist/index.js';
+import { lineHeightFactor, letterSpacingPt, placeChildren, flowBoxes, radiusPt, pageSize, parseLen, isLen, refBox, resolve, placed, layoutFrom, lockedRatio, rectPath, svgCodeAllowed, isPathData, isFill, pathVerdict, SVG_LIMITS, PICTURE_PATH_DATA } from '../dist/index.js';
 
 const page = { w: 800, h: 600, safe: 28.3465 };
 
@@ -200,3 +200,15 @@ test( 'a line height and a letter spacing are read with their unit, and a number
 	assert.equal( letterSpacingPt( undefined, 10 ), 0 );
 } );
 
+
+test( 'a path of a template is left out only past 100000 characters, a picture\'s past 20000, and what is left out is counted', () => {
+	const path = ( n ) => 'M0 0' + ' L1 1'.repeat( Math.ceil( ( n - 4 ) / 5 ) );
+	assert.equal( SVG_LIMITS.pathData, 100000, 'what the server keeps of an SVG element (Clean::SVG_PATH_DATA)' );
+	assert.equal( PICTURE_PATH_DATA, 20000, 'what the server keeps of a signature or a logo (Paths::MAX_DATA)' );
+	assert.equal( pathVerdict( path( 30000 ) ), 'ok', 'a detailed logo of 30000 characters is a path of a template' );
+	assert.equal( pathVerdict( path( 30000 ), PICTURE_PATH_DATA ), 'too-long', 'and is too long for a signature' );
+	assert.equal( pathVerdict( path( 100100 ) ), 'too-long' );
+	assert.equal( pathVerdict( '' ), 'empty' );
+	assert.equal( pathVerdict( 'M0 0 <script>' ), 'not-data' );
+	assert.equal( pathVerdict( 'L1 1' ), 'not-data', 'it starts with a move' );
+} );

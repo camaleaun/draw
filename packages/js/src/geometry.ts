@@ -292,7 +292,21 @@ export function rectPath( x: number, y: number, w: number, h: number, radius: Ar
  */
 
 /** What an SVG may be: the numbers of includes/signer.php (SVG_MAX_*), kept in step with it. */
-export const SVG_LIMITS = { bytes: 524288, paths: 50, pathData: 20000, viewBox: 5000 };
+export const SVG_LIMITS = { bytes: 524288, paths: 50, pathData: 100000, viewBox: 5000 };
+
+/**
+ * The most characters of a path's data in a picture (a signature, a community logo): what the server keeps for those (`Paths::MAX_DATA`). An SVG element of a
+ * template takes `SVG_LIMITS.pathData` (`Clean::SVG_PATH_DATA`): a detailed logo is a path of tens of thousands of characters.
+ */
+export const PICTURE_PATH_DATA = 20000;
+
+/** What to do with the data of a path: nothing (it has none), leave it out (too long, or not made of path commands and numbers) or keep it. */
+export function pathVerdict( d: string, limit: number = SVG_LIMITS.pathData ): 'empty' | 'too-long' | 'not-data' | 'ok' {
+	if ( ! d ) {
+		return 'empty';
+	}
+	return d.length > limit ? 'too-long' : isPathData( d ) ? 'ok' : 'not-data';
+}
 
 /**
  * Whether SVG code may even be read: not big, and with no DTD or entity (expansion bombs), style sheet instruction, script or
@@ -312,8 +326,11 @@ export function isFill( value: string ): boolean {
 	return /^(none|currentcolor|#[0-9a-f]{3,8}|rgba?\([\d\s.,%]+\)|\$[a-z0-9_-]+)$/i.test( value.trim() );
 }
 
-/** Reads SVG code into fields; returns the viewBox size and the paths, or null. */
-export function sanitizeSvg( code: string ): { vw: number; vh: number; w?: number; h?: number; paths: SvgPath[] } | null {
+/**
+ * Reads SVG code into fields; returns the viewBox size and the paths, or null. A path that is too long (`options.pathData`, `SVG_LIMITS.pathData` by default), that is
+ * not path data, or that is past the 50th, is left out: `skipped` says how many, so a drawing that lost some does not look whole.
+ */
+export function sanitizeSvg( code: string, options: { pathData?: number } = {} ): { vw: number; vh: number; w?: number; h?: number; paths: SvgPath[]; skipped?: number } | null {
 	const text = code.trim();
 	if ( ! svgCodeAllowed( text ) ) {
 		return null;
@@ -333,12 +350,15 @@ export function sanitizeSvg( code: string ): { vw: number; vh: number; w?: numbe
 		return null;
 	};
 	const paths: SvgPath[] = [];
+	let skipped = 0;
 	for ( const node of Array.from( root.getElementsByTagName( 'path' ) ) ) {
-		if ( paths.length >= SVG_LIMITS.paths ) {
-			break;
-		}
 		const d = ( node.getAttribute( 'd' ) || '' ).trim().replace( /\s+/g, ' ' );
-		if ( ! d || d.length > SVG_LIMITS.pathData || ! isPathData( d ) ) {
+		const verdict = pathVerdict( d, options.pathData ?? SVG_LIMITS.pathData );
+		if ( verdict === 'empty' ) {
+			continue;
+		}
+		if ( verdict !== 'ok' || paths.length >= SVG_LIMITS.paths ) {
+			skipped++;
 			continue;
 		}
 		const fill = inherited( node, 'fill' );
@@ -363,7 +383,7 @@ export function sanitizeSvg( code: string ): { vw: number; vh: number; w?: numbe
 	const w = size( 'width' );
 	const h = size( 'height' );
 	const shown = w > 0 && h > 0 && w <= SVG_LIMITS.viewBox && h <= SVG_LIMITS.viewBox && ( w !== vw || h !== vh );
-	return { vw, vh, ...( shown ? { w, h } : {} ), paths };
+	return { vw, vh, ...( shown ? { w, h } : {} ), paths, ...( skipped ? { skipped } : {} ) };
 }
 
 
