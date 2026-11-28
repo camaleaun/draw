@@ -91,3 +91,30 @@ Dear [[name]], welcome to **[[event]]**, held in *[[location]]*.
 - `**…**` is bold and `*…*` italic, as in markdown (`***…***` is both).
 - A switch with no partner (`5 * 3`) is text; a line break is a line break; a backslash before one of `\ * _ [ ] {` makes it text.
 - A file of before, with `runs` (and `bold` and `italic`), is read the same.
+
+
+## The attributes of a core block (read since 0.26, written since 0.27)
+
+An element says its look with the names a core block says them, and every length has its unit. 0.26 reads both forms; a key of the new form wins over the old one. `tests/golden/markup/*.old.html`
+is the form 0.25 wrote and `*.new.html` the new one (made by `tests/tools/make-new-fixture.py` from this table, not by the package); both twins read both to the same design.
+
+| Model | Block attribute |
+|---|---|
+| `x`, `y`, `w`, `h`, `x1`…`y2`, `qr` | `x`, `y`, `width`, `height`, `x1`…`y2`, `qr`, each with its unit: `"0pt"`, `"473.5pt"` (read: pt, px, mm, cm, in, or a number of points) |
+| `layout.h`, `layout.v`, `layout.ref` | `layout.horizontal`, `layout.vertical`, `layout.reference` |
+| `locked` | `lock: { move, remove }` (read: either one is `locked`) |
+| `lock` (a number: the ratio kept) | `style.dimensions.aspectRatio` |
+| `name`, `hidden` | `metadata.name`, `metadata.blockVisibility: false` |
+| an `id` that means something | `anchor` (an id that only counts is not written) |
+| text `runs`, `variants` | `text` (`[[field]]`, `**bold**`, `*italic*`), `textVariants: [ { "pt_BR": "…", "es_ES": "…" } ]` (an object a language is read too) |
+| `font`, `weight` | `fontFamily` (the slug of a font the host has, else the name as written; `fonts` option), `style.typography.fontWeight` |
+| `size` | `style.typography.fontSize`: `"13pt"` for points, another unit as written (`"4.4mm"`); read `"13px"` is 13 |
+| `lh`, `ls`, `align`, `upper` | `style.typography.lineHeight`, `.letterSpacing`, `.textAlign`, `.textTransform: "uppercase"` |
+| `color`, `fit`, `min` | `style.color.text`, `fitText`, `minFontSize` |
+| `fill`, `stroke`, `strokeWidth`, `dash`, `radius` | `style.color.background`, `style.border.color`, `.width`, `.style`, `.radius` (one length, or `{ topLeft, topRight, bottomRight, bottomLeft }`) |
+| group `arrange`, `justify`, `align`, `columns` | `arrange: { type: "flex", orientation, justifyContent, verticalAlignment }` or `{ type: "grid", columnCount }` (the main axis of a row is horizontal, of a stack vertical) |
+| `gap`, `padding` | `style.spacing.blockGap`, `style.spacing.padding` |
+| image `src`, `attachment`, `fit`, `ratio` | `url`, `id`, `scale`, `aspectRatio` |
+| verification `code`, `hint` | `{ typography: { fontSize, fontWeight, lineHeight }, color: { text } }` |
+
+The page, the colors and the palette of the root are unchanged. `elementsToMarkup()` and `elementsFromMarkup()` (and `Design::elements_to_markup()` / `elements_from_markup()`) write and read some elements with no root block.
