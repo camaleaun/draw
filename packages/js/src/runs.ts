@@ -1,8 +1,8 @@
 /**
- * The text of an element as it is written: `Dear [name], *welcome* to _[event]_.` The same as `Runs` of the PHP package (the two read the same
+ * The text of an element as it is written: `Dear [[name]], welcome to **[[event]]**.` The same as `Runs` of the PHP package (the two read the same
  * fixtures: `packages/fixtures/runs.json`).
  *
- *   - `[key]` or `[key:format]` is a field (only a key the host says is a field, when it says; `{key}`, what files wrote before, is read as one too);
+ *   - `[[key]]` or `[[key:format]]` is a field (only a key the host says is a field, when it says; `{key}`, what files wrote before, is read as one too);
  *   - `**…**` is bold and `*…*` italic, as in markdown (`***…***` is both);
  *   - a switch with no partner is text (`5 * 3`), a line break is a line break;
  *   - `\` before one of `\ * _ [ ] {` makes it text.
@@ -56,13 +56,20 @@ function tokens( source: string, fields?: string[] ): Token[] {
 				}
 			}
 			i = n;
-		} else if ( c === '[' || c === '{' ) {
-			const end = chars.indexOf( c === '[' ? ']' : '}', i + 1 );
-			const body = end > i ? chars.slice( i + 1, end ).join( '' ) : '';
+		} else if ( ( c === '[' && chars[ i + 1 ] === '[' ) || c === '{' ) {
+			// [[key]] or [[key:format]] (and the {key} of before).
+			const double = c === '[';
+			let end = -1;
+			for ( let n = i + ( double ? 2 : 1 ); n < chars.length && end < 0; n++ ) {
+				if ( chars[ n ] === ( double ? ']' : '}' ) && ( ! double || chars[ n + 1 ] === ']' ) ) {
+					end = n;
+				}
+			}
+			const body = end > i ? chars.slice( i + ( double ? 2 : 1 ), end ).join( '' ) : '';
 			const [ key, format, ...rest ] = body.split( ':' );
-			if ( end > i && ! rest.length && known( key, fields ) && ( format === undefined || ( c === '[' && KEY.test( format ) ) ) ) {
-				out.push( { kind: 'field', field: key, ...( format && format !== 'site' ? { format } : {} ), raw: chars.slice( i, end + 1 ).join( '' ) } );
-				i = end;
+			if ( end > i && ! rest.length && known( key, fields ) && ( format === undefined || ( double && KEY.test( format ) ) ) ) {
+				out.push( { kind: 'field', field: key, ...( format && format !== 'site' ? { format } : {} ), raw: chars.slice( i, end + ( double ? 2 : 1 ) ).join( '' ) } );
+				i = end + ( double ? 1 : 0 );
 			} else {
 				push( c );
 			}
@@ -172,9 +179,10 @@ export function runsToText( runs: Run[] ): string {
 		b = nb;
 		i = ni;
 		if ( 'field' in run ) {
-			out += `[${ run.field }${ run.format ? ':' + run.format : '' }]`;
+			out += `[[${ run.field }${ run.format ? ':' + run.format : '' }]]`;
 		} else {
-			out += run.text.replace( /[\\*[{]/g, ( c ) => `\\${ c }` );
+			// A bracket only needs its backslash before another one ([[ is a field).
+			out += run.text.replace( /[\\*{]|\[(?=\[)/g, ( c ) => `\\${ c }` );
 		}
 	}
 	return out + ( i ? '*' : '' ) + ( b ? '**' : '' );

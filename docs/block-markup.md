@@ -76,10 +76,10 @@ The `text` attribute of a `draw/text` (and each language of its `variants`) is w
 (`parseRuns` / `Runs::parse`, `runsToText` / `Runs::to_text`; `packages/fixtures/runs.json` is what both read):
 
 ```
-Dear [name], welcome to *[event]*, held in _[location]_.
+Dear [[name]], welcome to **[[event]]**, held in *[[location]]*.
 ```
 
-- `[key]` and `[key:format]` are fields; with the `fields` option only those keys are (the others stay text). `{key}`, what files wrote before, is read as a field too.
+- `[[key]]` and `[[key:format]]` are fields (a lone `[word]` is text); with the `fields` option only those keys are (the others stay text). `{key}`, what files wrote before, is read as a field too.
 - `**…**` is bold and `*…*` italic, as in markdown (`***…***` is both).
 - A switch with no partner (`5 * 3`) is text; a line break is a line break; a backslash before one of `\ * _ [ ] {` makes it text.
 - A file of before, with `runs` (and `bold` and `italic`), is read the same.

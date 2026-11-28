@@ -20,5 +20,5 @@ test( 'runs are written as the text that reads back as them', () => {
 } );
 
 test( 'runs with empty text, false marks and the default format are the same as without', () => {
-	assert.equal( runsToText( [ { text: '' }, { text: 'a', b: false }, { text: 'b' }, { field: 'issued_date', format: 'site' } ] ), 'ab[issued_date]' );
+	assert.equal( runsToText( [ { text: '' }, { text: 'a', b: false }, { text: 'b' }, { field: 'issued_date', format: 'site' } ] ), 'ab[[issued_date]]' );
 } );

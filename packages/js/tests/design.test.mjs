@@ -90,7 +90,7 @@ test( 'an element is written with the names of a block, and read back with the m
 	assert.ok( markup.includes( '"layout":{"horizontal":{"mode":"stretch"},"vertical":{"mode":"start"},"ref":"safe"}' ) );
 	assert.ok( markup.includes( '"viewBox":"0 0 24 24"' ) );
 	assert.ok( markup.includes( '"lineHeight":1.2,"letterSpacing":0.5' ) );
-	assert.ok( markup.includes( '"text":"**a***[name]*"' ) && ! markup.includes( '"runs"' ), 'A text is written as text.' );
+	assert.ok( markup.includes( '"text":"**a***[[name]]*"' ) && ! markup.includes( '"runs"' ), 'A text is written as text.' );
 	assert.ok( markup.includes( '"x1":0' ), 'the coordinates of a line stay' );
 	assert.ok( markup.includes( '"id":"title"' ), 'an id that means something stays' );
 	assert.equal( /"id":"(rect-2|svg-)/.test( markup ), false, 'an id that only counts is not written' );
@@ -139,7 +139,7 @@ test( 'a group keeps what is in it as inner blocks, down to the last level, and 
 test( 'a text is written as text and read as runs, in every language', () => {
 	const design = { page: { w: 1, h: 1 }, elements: [ { type: 'text', id: 't', runs: [ { text: 'Held in ' }, { field: 'location', b: true } ], variants: { pt_BR: [ { text: 'Em ' }, { field: 'location', i: true } ] } } ] };
 	const markup = toMarkup( design );
-	assert.ok( markup.includes( '"text":"Held in **[location]**"' ) && markup.includes( '"variants":{"pt_BR":"Em *[location]*"}' ) );
+	assert.ok( markup.includes( '"text":"Held in **[[location]]**"' ) && markup.includes( '"variants":{"pt_BR":"Em *[[location]]*"}' ) );
 	assert.deepEqual( fromMarkup( markup ), design );
 } );
 
@@ -152,6 +152,6 @@ test( 'a text of an earlier file is read', () => {
 } );
 
 test( 'only the fields the host says are fields', () => {
-	const markup = '<!-- wp:events-certificates/certificate {"page":{"w":1,"h":1}} --><!-- wp:draw/text {"id":"t","text":"[name] [other]"} /--><!-- /wp:events-certificates/certificate -->';
-	assert.deepEqual( fromMarkup( markup, { fields: [ 'name' ] } ).elements[ 0 ].runs, [ { field: 'name' }, { text: ' [other]' } ] );
+	const markup = '<!-- wp:events-certificates/certificate {"page":{"w":1,"h":1}} --><!-- wp:draw/text {"id":"t","text":"[[name]] [[other]]"} /--><!-- /wp:events-certificates/certificate -->';
+	assert.deepEqual( fromMarkup( markup, { fields: [ 'name' ] } ).elements[ 0 ].runs, [ { field: 'name' }, { text: ' [[other]]' } ] );
 } );

@@ -1,9 +1,9 @@
 <?php
 /**
- * The text of an element as it is written: `Dear [name], *welcome* to _[event]_.` The same as `runs.ts` of the JavaScript package (the two read the
+ * The text of an element as it is written: `Dear [[name]], welcome to **[[event]]**.` The same as `runs.ts` of the JavaScript package (the two read the
  * same fixtures: `packages/fixtures/runs.json`).
  *
- *   - `[key]` or `[key:format]` is a field (only a key the host says is a field, when it says; `{key}`, what files wrote before, is read as one too);
+ *   - `[[key]]` or `[[key:format]]` is a field (only a key the host says is a field, when it says; `{key}`, what files wrote before, is read as one too);
  *   - `**…**` is bold and `*…*` italic, as in markdown (`***…***` is both);
  *   - a switch with no partner is text (`5 * 3`), a line break is a line break;
  *   - `\` before one of `\ * _ [ ] {` makes it text.
@@ -103,14 +103,21 @@ final class Runs {
 					}
 				}
 				$i = $n;
-			} elseif ( '[' === $c || '{' === $c ) {
-				$close = array_search( '[' === $c ? ']' : '}', array_slice( $chars, $i + 1 ), true );
-				$end   = false === $close ? -1 : $i + 1 + $close;
-				$body  = $end > $i ? implode( '', array_slice( $chars, $i + 1, $end - $i - 1 ) ) : '';
+			} elseif ( ( '[' === $c && '[' === ( $chars[ $i + 1 ] ?? '' ) ) || '{' === $c ) {
+				// [[key]] or [[key:format]] (and the {key} of before).
+				$double = '[' === $c;
+				$end    = -1;
+				for ( $n = $i + ( $double ? 2 : 1 ); $n < $count && $end < 0; $n++ ) {
+					if ( $chars[ $n ] === ( $double ? ']' : '}' ) && ( ! $double || ( $chars[ $n + 1 ] ?? '' ) === ']' ) ) {
+						$end = $n;
+					}
+				}
+				$start = $i + ( $double ? 2 : 1 );
+				$body  = $end > $i ? implode( '', array_slice( $chars, $start, $end - $start ) ) : '';
 				$parts = explode( ':', $body );
 				$key   = $parts[0];
 				$fmt   = $parts[1] ?? null;
-				if ( $end > $i && count( $parts ) <= 2 && self::known( $key, $fields ) && ( null === $fmt || ( '[' === $c && 1 === preg_match( self::KEY, $fmt ) ) ) ) {
+				if ( $end > $i && count( $parts ) <= 2 && self::known( $key, $fields ) && ( null === $fmt || ( $double && 1 === preg_match( self::KEY, $fmt ) ) ) ) {
 					$token = array(
 						'kind'  => 'field',
 						'field' => $key,
@@ -119,7 +126,7 @@ final class Runs {
 						$token['format'] = $fmt;
 					}
 					$out[] = $token;
-					$i     = $end;
+					$i     = $end + ( $double ? 1 : 0 );
 				} else {
 					$push( $c );
 				}
@@ -273,10 +280,10 @@ final class Runs {
 			$b = $nb;
 			$i = $ni;
 			if ( isset( $run['field'] ) ) {
-				$out .= '[' . $run['field'] . ( isset( $run['format'] ) ? ':' . $run['format'] : '' ) . ']';
+				$out .= '[[' . $run['field'] . ( isset( $run['format'] ) ? ':' . $run['format'] : '' ) . ']]';
 				continue;
 			}
-			$out .= preg_replace( '/[\\\\*\[{]/', '\\\\$0', $run['text'] );
+			$out .= preg_replace( '/[\\\\*{]|\[(?=\[)/', '\\\\$0', $run['text'] );
 		}
 
 		return $out . ( $i ? '*' : '' ) . ( $b ? '**' : '' );

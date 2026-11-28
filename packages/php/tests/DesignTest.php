@@ -139,8 +139,8 @@ final class DesignTest extends TestCase {
 			),
 		);
 		$markup = Design::to_markup( $design );
-		$this->assertStringContainsString( '"text":"Held in **[location]**"', $markup );
-		$this->assertStringContainsString( '"variants":{"pt_BR":"Em *[location]*"}', $markup );
+		$this->assertStringContainsString( '"text":"Held in **[[location]]**"', $markup );
+		$this->assertStringContainsString( '"variants":{"pt_BR":"Em *[[location]]*"}', $markup );
 		$this->assertSame( $design, Design::from_markup( $markup ) );
 	}
 
@@ -153,9 +153,9 @@ final class DesignTest extends TestCase {
 	}
 
 	public function test_only_the_fields_the_host_says_are_fields() {
-		$markup = '<!-- wp:events-certificates/certificate {"page":{"w":1,"h":1}} --><!-- wp:draw/text {"id":"t","text":"[name] [other]"} /--><!-- /wp:events-certificates/certificate -->';
+		$markup = '<!-- wp:events-certificates/certificate {"page":{"w":1,"h":1}} --><!-- wp:draw/text {"id":"t","text":"[[name]] [[other]]"} /--><!-- /wp:events-certificates/certificate -->';
 		$design = Design::from_markup( $markup, array( 'fields' => array( 'name' ) ) );
-		$this->assertSame( array( array( 'field' => 'name' ), array( 'text' => ' [other]' ) ), $design['elements'][0]['runs'] );
+		$this->assertSame( array( array( 'field' => 'name' ), array( 'text' => ' [[other]]' ) ), $design['elements'][0]['runs'] );
 	}
 
 	public function test_markup_that_is_not_balanced_or_too_deep_is_refused() {
@@ -187,7 +187,7 @@ final class DesignTest extends TestCase {
 		$this->assertStringContainsString( '"layout":{"horizontal":{"mode":"stretch"},"vertical":{"mode":"start"},"ref":"safe"}', $markup );
 		$this->assertStringContainsString( '"viewBox":"0 0 24 24"', $markup );
 		$this->assertStringContainsString( '"lineHeight":1.2,"letterSpacing":0.5', $markup );
-		$this->assertStringContainsString( '"text":"**a***[name]*"', $markup, 'A text is written as text.' );
+		$this->assertStringContainsString( '"text":"**a***[[name]]*"', $markup, 'A text is written as text.' );
 		$this->assertStringNotContainsString( '"runs"', $markup );
 		$this->assertStringContainsString( '"x1":0', $markup, 'The coordinates of a line stay.' );
 		$this->assertStringContainsString( '"id":"title"', $markup, 'An id that means something stays.' );

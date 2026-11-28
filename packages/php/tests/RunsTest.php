@@ -31,7 +31,7 @@ final class RunsTest extends TestCase {
 
 	public function test_runs_with_empty_text_false_marks_and_the_default_format_are_the_same_as_without() {
 		$this->assertSame(
-			'ab[issued_date]',
+			'ab[[issued_date]]',
 			Runs::to_text(
 				array(
 					array( 'text' => '' ),
