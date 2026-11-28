@@ -4,6 +4,8 @@
  * its type, each path of an SVG a `draw/svg-path` inner block. Every key of an element is an attribute of its block, with the names a block says
  * (width, height, viewBox, lineHeight, horizontal…: `names.ts`).
  *
+ * A text is written as text (`text`: `Dear [name], *welcome*`; `runs.ts`) and read back as runs: the keys that are fields come as the `fields` option.
+ *
  * That is the default, the native way of the blocks. A second argument (`Options`) changes it, the same for both directions: the block
  * of a type (`blocks`, over the defaults), the block that keeps the types that are not known (`fallback`), and whether the paths of an
  * SVG are inner blocks (`inner`, the default) or the `paths` attribute of one block (`attribute`).
@@ -32,10 +34,11 @@ export const BLOCKS: Record< string, string > = {
 	verification: 'events-certificates/certificate-verification',
 };
 
-export type Options = { blocks?: Record< string, string >; fallback?: string; paths?: 'inner' | 'attribute'; names?: Record< string, string > };
-type Resolved = { blocks: Record< string, string >; fallback: string; paths: 'inner' | 'attribute'; names: Record< string, string > };
+export type Options = { fields?: string[]; blocks?: Record< string, string >; fallback?: string; paths?: 'inner' | 'attribute'; names?: Record< string, string > };
+type Resolved = { fields?: string[]; blocks: Record< string, string >; fallback: string; paths: 'inner' | 'attribute'; names: Record< string, string > };
 
 const resolve = ( options: Options = {} ): Resolved => ( {
+	fields: Array.isArray( options.fields ) ? options.fields.map( String ) : undefined,
 	blocks: { ...BLOCKS, ...( options.blocks || {} ) },
 	fallback: options.fallback || FALLBACK,
 	paths: options.paths === 'attribute' ? 'attribute' : 'inner',
@@ -50,7 +53,7 @@ function blocks( elements: unknown, o: Resolved ): Block[] {
 		if ( ! isObject( element ) ) {
 			continue;
 		}
-		const { type, ...attrs } = toAttrs( element, o.names );
+		const { type, ...attrs } = toAttrs( element, o.names, o.fields );
 		const kind = String( element.type ?? '' );
 		let children: Block[] = [];
 		if ( kind === 'group' ) {
@@ -74,10 +77,10 @@ function blocks( elements: unknown, o: Resolved ): Block[] {
 
 function element( block: Block, o: Resolved ): Attrs {
 	if ( block.name === o.fallback ) {
-		return fromAttrs( block.attrs );
+		return fromAttrs( block.attrs, o.fields );
 	}
 	const type = Object.keys( o.blocks ).find( ( key ) => o.blocks[ key ] === block.name ) ?? '';
-	const out: Attrs = { type, ...fromAttrs( block.attrs ) };
+	const out: Attrs = { type, ...fromAttrs( block.attrs, o.fields, type === 'text' ) };
 	if ( type === 'group' ) {
 		out.children = block.children.map( ( child ) => element( child, o ) );
 	}

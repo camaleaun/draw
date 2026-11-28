@@ -126,6 +126,38 @@ final class DesignTest extends TestCase {
 		$this->assertSame( $design, Design::from_markup( $markup ) );
 	}
 
+	public function test_a_text_is_written_as_text_and_read_as_runs_in_every_language() {
+		$design = array(
+			'page'     => array( 'w' => 1, 'h' => 1 ),
+			'elements' => array(
+				array(
+					'type'     => 'text',
+					'id'       => 't',
+					'runs'     => array( array( 'text' => 'Held in ' ), array( 'field' => 'location', 'b' => true ) ),
+					'variants' => array( 'pt_BR' => array( array( 'text' => 'Em ' ), array( 'field' => 'location', 'i' => true ) ) ),
+				),
+			),
+		);
+		$markup = Design::to_markup( $design );
+		$this->assertStringContainsString( '"text":"Held in *[location]*"', $markup );
+		$this->assertStringContainsString( '"variants":{"pt_BR":"Em _[location]_"}', $markup );
+		$this->assertSame( $design, Design::from_markup( $markup ) );
+	}
+
+	public function test_a_text_of_an_earlier_file_is_read() {
+		$old = '<!-- wp:events-certificates/certificate {"page":{"w":1,"h":1}} --><!-- wp:draw/text {"id":"t","runs":[{"text":"a"},{"field":"name","bold":true}],"variants":{"pt_BR":[{"text":"b","bold":true,"i":true}]}} /--><!-- wp:draw/text {"id":"u","text":"{name} and **bold**"} /--><!-- /wp:events-certificates/certificate -->';
+		$design = Design::from_markup( $old );
+		$this->assertSame( array( array( 'text' => 'a' ), array( 'field' => 'name', 'b' => true ) ), $design['elements'][0]['runs'] );
+		$this->assertSame( array( 'pt_BR' => array( array( 'text' => 'b', 'b' => true, 'i' => true ) ) ), $design['elements'][0]['variants'] );
+		$this->assertSame( array( array( 'field' => 'name' ), array( 'text' => ' and ' ), array( 'text' => 'bold', 'b' => true ) ), $design['elements'][1]['runs'] );
+	}
+
+	public function test_only_the_fields_the_host_says_are_fields() {
+		$markup = '<!-- wp:events-certificates/certificate {"page":{"w":1,"h":1}} --><!-- wp:draw/text {"id":"t","text":"[name] [other]"} /--><!-- /wp:events-certificates/certificate -->';
+		$design = Design::from_markup( $markup, array( 'fields' => array( 'name' ) ) );
+		$this->assertSame( array( array( 'field' => 'name' ), array( 'text' => ' [other]' ) ), $design['elements'][0]['runs'] );
+	}
+
 	public function test_markup_that_is_not_balanced_or_too_deep_is_refused() {
 		$this->assertNull( Markup::parse( '<!-- wp:a/b -->' ) );
 		$this->assertNull( Markup::parse( '<!-- wp:a/b --><!-- /wp:a/c -->' ) );
@@ -155,8 +187,8 @@ final class DesignTest extends TestCase {
 		$this->assertStringContainsString( '"layout":{"horizontal":{"mode":"stretch"},"vertical":{"mode":"start"},"ref":"safe"}', $markup );
 		$this->assertStringContainsString( '"viewBox":"0 0 24 24"', $markup );
 		$this->assertStringContainsString( '"lineHeight":1.2,"letterSpacing":0.5', $markup );
-		$this->assertStringContainsString( '"bold":true', $markup );
-		$this->assertStringContainsString( '"italic":true', $markup );
+		$this->assertStringContainsString( '"text":"*a*_[name]_"', $markup, 'A text is written as text.' );
+		$this->assertStringNotContainsString( '"runs"', $markup );
 		$this->assertStringContainsString( '"x1":0', $markup, 'The coordinates of a line stay.' );
 		$this->assertStringContainsString( '"id":"title"', $markup, 'An id that means something stays.' );
 		$this->assertSame( 0, preg_match( '/"id":"(rect-2|svg-)/', $markup ), 'An id that only counts is not written.' );

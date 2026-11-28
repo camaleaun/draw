@@ -6,6 +6,8 @@
  * block of its type (`draw/rect`, `draw/text`…), an SVG's paths are `draw/svg-path` inner blocks. Every key an element has is an attribute
  * of its block, so what goes in comes out the same.
  *
+ * A text is written as text (`text`: `Dear [name], *welcome*`; `Runs`), and read back as runs: the keys that are fields come as the `fields` option.
+ *
  * That is the default, the native way of the blocks. A second argument changes it (the same for both directions):
  *   - `blocks`:   the block of a type, over the defaults (`array( 'svg' => 'events-certificates/certificate-svg' )`);
  *   - `fallback`: the block that keeps the elements of a type this version does not know (`draw/element` by default);
@@ -52,10 +54,11 @@ final class Design {
 	 * The options with their defaults.
 	 *
 	 * @param array<string, mixed> $options Options (see the class).
-	 * @return array{blocks: array<string, string>, fallback: string, paths: string, names: array<string, string>}
+	 * @return array{fields: array<int, string>|null, blocks: array<string, string>, fallback: string, paths: string, names: array<string, string>}
 	 */
 	private static function options( array $options ) {
 		return array(
+			'fields'   => is_array( $options['fields'] ?? null ) ? array_values( array_map( 'strval', $options['fields'] ) ) : null,
 			'blocks'   => array_merge( self::BLOCKS, is_array( $options['blocks'] ?? null ) ? $options['blocks'] : array() ),
 			'fallback' => is_string( $options['fallback'] ?? null ) ? $options['fallback'] : self::FALLBACK,
 			'paths'    => 'attribute' === ( $options['paths'] ?? '' ) ? 'attribute' : 'inner',
@@ -150,7 +153,7 @@ final class Design {
 				continue;
 			}
 			$type  = (string) ( $element['type'] ?? '' );
-			$attrs = Names::to_attrs( $element, $options['names'] );
+			$attrs = Names::to_attrs( $element, $options['names'], $options['fields'] );
 			unset( $attrs['type'] );
 			$children = array();
 			if ( 'group' === $type ) {
@@ -212,10 +215,10 @@ final class Design {
 	 */
 	private static function element( array $block, array $options ) {
 		if ( $options['fallback'] === $block['name'] ) {
-			return Names::from_attrs( $block['attrs'] );
+			return Names::from_attrs( $block['attrs'], $options['fields'] );
 		}
 		$type    = (string) array_search( $block['name'], $options['blocks'], true );
-		$element = array( 'type' => $type ) + Names::from_attrs( $block['attrs'] );
+		$element = array( 'type' => $type ) + Names::from_attrs( $block['attrs'], $options['fields'], 'text' === $type );
 		if ( 'group' === $type ) {
 			$element['children'] = self::elements( $block['children'], $options );
 		}

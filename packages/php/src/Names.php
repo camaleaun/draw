@@ -80,8 +80,9 @@ class Names {
 	 * @param bool                 $full    True to write in full, false to read.
 	 * @return array<string, mixed>
 	 */
-	private static function names( array $element, $full ) {
+	private static function names( array $element, $full, $fields = null, $is_text = false ) {
 		$out = self::rename( $element, self::TEXT, $full );
+		$out = $full ? self::write_text( $out ) : self::read_text( $out, $fields, $is_text );
 		foreach ( array( 'hint', 'code' ) as $key ) {
 			if ( isset( $out[ $key ] ) ) {
 				$out[ $key ] = self::rename( $out[ $key ], self::TEXT, $full );
@@ -100,15 +101,77 @@ class Names {
 	}
 
 	/**
+	 * The runs of a text element as the text that is written (`text`, where `runs` was; each language of `variants` the same).
+	 *
+	 * @param array<string, mixed> $element Element, with the model's names.
+	 * @return array<string, mixed>
+	 */
+	private static function write_text( array $element ) {
+		if ( isset( $element['variants'] ) && is_array( $element['variants'] ) ) {
+			foreach ( $element['variants'] as $locale => $runs ) {
+				if ( is_array( $runs ) ) {
+					$element['variants'][ $locale ] = Runs::to_text( $runs );
+				}
+			}
+		}
+		if ( ! isset( $element['runs'] ) || ! is_array( $element['runs'] ) ) {
+			return $element;
+		}
+		$out = array();
+		foreach ( $element as $key => $value ) {
+			if ( 'runs' === $key ) {
+				$out['text'] = Runs::to_text( $value );
+			} elseif ( 'text' !== $key ) {
+				$out[ $key ] = $value;
+			}
+		}
+
+		return $out;
+	}
+
+	/**
+	 * The text that is written as the runs of a text element: `text` (a string) becomes `runs`, in its place, and so does each language of `variants`
+	 * (a list is what files wrote before, with `bold` and `italic`).
+	 *
+	 * @param array<string, mixed>    $element Element, with the file's names.
+	 * @param array<int, string>|null $fields  The keys that are fields.
+	 * @param bool                    $is_text Whether it is a text element (any other keeps its `text`).
+	 * @return array<string, mixed>
+	 */
+	private static function read_text( array $element, $fields, $is_text ) {
+		if ( isset( $element['variants'] ) && is_array( $element['variants'] ) ) {
+			foreach ( $element['variants'] as $locale => $runs ) {
+				if ( is_string( $runs ) ) {
+					$element['variants'][ $locale ] = Runs::parse( $runs, $fields );
+				} elseif ( is_array( $runs ) ) {
+					foreach ( $runs as $i => $run ) {
+						$element['variants'][ $locale ][ $i ] = self::rename( $run, self::MARKS, false );
+					}
+				}
+			}
+		}
+		if ( ! $is_text || ! isset( $element['text'] ) || ! is_string( $element['text'] ) || isset( $element['runs'] ) ) {
+			return $element;
+		}
+		$out = array();
+		foreach ( $element as $key => $value ) {
+			$out['text' === $key ? 'runs' : $key] = 'text' === $key ? Runs::parse( $value, $fields ) : $value;
+		}
+
+		return $out;
+	}
+
+	/**
 	 * An element as the attributes of its block.
 	 *
 	 * @param array<string, mixed>  $element Element (as the model says it).
 	 * @param array<string, string> $names   The default names a host adds (by type or `type:slot`).
+	 * @param array<int, string>|null $fields The keys that are fields (not used to write: a field is written as it is).
 	 * @return array<string, mixed>
 	 */
-	public static function to_attrs( array $element, array $names = array() ) {
+	public static function to_attrs( array $element, array $names = array(), $fields = null ) {
 		$default = self::default_name( $element, $names );
-		$element = self::names( $element, true );
+		$element = self::names( $element, true, $fields );
 		$out     = array();
 		foreach ( $element as $key => $value ) {
 			if ( 'name' === $key && '' !== $default && $default === $value ) {
@@ -149,12 +212,14 @@ class Names {
 	/**
 	 * The attributes of a block as an element (as the model says it), with no id when the block said none.
 	 *
-	 * @param array<string, mixed> $attrs Attributes.
+	 * @param array<string, mixed>    $attrs   Attributes.
+	 * @param array<int, string>|null $fields  The keys that are fields (null: any valid key).
+	 * @param bool                    $is_text Whether it is the block of a text (its `text` is written text, to read as runs).
 	 * @return array<string, mixed>
 	 */
-	public static function from_attrs( array $attrs ) {
+	public static function from_attrs( array $attrs, $fields = null, $is_text = false ) {
 		$out = array();
-		foreach ( self::names( $attrs, false ) as $key => $value ) {
+		foreach ( self::names( $attrs, false, $fields, $is_text ) as $key => $value ) {
 			if ( 'width' === $key ) {
 				$out['w'] = $value;
 			} elseif ( 'height' === $key ) {

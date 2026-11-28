@@ -5,6 +5,8 @@
  *
  * The same as `Names` of the PHP package.
  */
+import { parseRuns, runsToText, type Run } from './runs';
+
 type Attrs = Record< string, unknown >;
 
 /** An id that only counts: a type and a number (`rect-2`), or the editor's (`svg-mwzbwe9c-1`); inside a group it follows the id of the group (`group-2-rect-1`). */
@@ -23,8 +25,41 @@ const rename = ( value: unknown, map: Record< string, string >, full: boolean ):
 	return Object.fromEntries( Object.entries( value ).map( ( [ k, v ] ) => [ names[ k ] ?? k, v ] ) );
 };
 
-function names( element: Attrs, full: boolean ): Attrs {
-	const out = rename( element, TEXT, full ) as Attrs;
+/** The runs of a text element as the text that is written (`text`, where `runs` was; each language of `variants` the same). */
+function writeText( element: Attrs ): Attrs {
+	let out = element;
+	if ( out.variants && typeof out.variants === 'object' ) {
+		out = { ...out, variants: Object.fromEntries( Object.entries( out.variants as Attrs ).map( ( [ locale, runs ] ) => [ locale, Array.isArray( runs ) ? runsToText( runs as Run[] ) : runs ] ) ) };
+	}
+	if ( ! Array.isArray( out.runs ) ) {
+		return out;
+	}
+	const written: Attrs = {};
+	for ( const [ key, value ] of Object.entries( out ) ) {
+		if ( key === 'runs' ) {
+			written.text = runsToText( value as Run[] );
+		} else if ( key !== 'text' ) {
+			written[ key ] = value;
+		}
+	}
+	return written;
+}
+
+/** The text that is written as the runs of a text element (a list is what files wrote before, with `bold` and `italic`). */
+function readText( element: Attrs, fields: string[] | undefined, isText: boolean ): Attrs {
+	let out = element;
+	if ( out.variants && typeof out.variants === 'object' ) {
+		out = { ...out, variants: Object.fromEntries( Object.entries( out.variants as Attrs ).map( ( [ locale, runs ] ) => [ locale, typeof runs === 'string' ? parseRuns( runs, { fields } ) : Array.isArray( runs ) ? runs.map( ( run ) => rename( run, MARKS, false ) ) : runs ] ) ) };
+	}
+	if ( ! isText || typeof out.text !== 'string' || out.runs !== undefined ) {
+		return out;
+	}
+	return Object.fromEntries( Object.entries( out ).map( ( [ key, value ] ) => ( key === 'text' ? [ 'runs', parseRuns( value as string, { fields } ) ] : [ key, value ] ) ) );
+}
+
+function names( element: Attrs, full: boolean, fields?: string[], isText = false ): Attrs {
+	let out = rename( element, TEXT, full ) as Attrs;
+	out = full ? writeText( out ) : readText( out, fields, isText );
 	for ( const key of [ 'hint', 'code' ] ) {
 		if ( out[ key ] ) {
 			out[ key ] = rename( out[ key ], TEXT, full );
@@ -52,9 +87,9 @@ export function defaultName( element: Attrs, hostNames: Record< string, string >
 }
 
 /** An element as the attributes of its block. */
-export function toAttrs( element: Attrs, hostNames: Record< string, string > = {} ): Attrs {
+export function toAttrs( element: Attrs, hostNames: Record< string, string > = {}, fields?: string[] ): Attrs {
 	const fallback = defaultName( element, hostNames );
-	const el = names( element, true );
+	const el = names( element, true, fields );
 	const out: Attrs = {};
 	for ( const [ key, value ] of Object.entries( el ) ) {
 		if ( key === 'name' && fallback !== '' && value === fallback ) {
@@ -77,9 +112,9 @@ export function toAttrs( element: Attrs, hostNames: Record< string, string > = {
 }
 
 /** The attributes of a block as an element, with no id when the block said none. */
-export function fromAttrs( attrs: Attrs ): Attrs {
+export function fromAttrs( attrs: Attrs, fields?: string[], isText = false ): Attrs {
 	const out: Attrs = {};
-	for ( const [ key, value ] of Object.entries( names( attrs, false ) ) ) {
+	for ( const [ key, value ] of Object.entries( names( attrs, false, fields, isText ) ) ) {
 		const box = typeof value === 'string' ? /^\s*[-\d.]+[\s,]+[-\d.]+[\s,]+([\d.]+)[\s,]+([\d.]+)\s*$/.exec( value ) : null;
 		if ( key === 'width' ) {
 			out.w = value;

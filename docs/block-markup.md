@@ -3,7 +3,7 @@
 | Block | What it is | Inner blocks |
 |---|---|---|
 | `draw/frame` | The drawing: `width`, `height` (lengths) and `colors` (variable → color) | the shapes |
-| `draw/rect` `draw/ellipse` `draw/line` `draw/path` `draw/image` `draw/text` | a shape, with `x y w h` in points and its own attributes (`fill`, `stroke`, `runs`, `src`…) | — |
+| `draw/rect` `draw/ellipse` `draw/line` `draw/path` `draw/image` `draw/text` | a shape, with `x y w h` in points and its own attributes (`fill`, `stroke`, `text`, `src`…) | — |
 | `draw/svg` | a group drawn as a nested SVG (`vw`, `vh`, and `w`, `h` when it prefers a size) | `draw/svg-path` |
 | `draw/group` | a box like `draw/rect` (`fill`, `stroke`, `strokeWidth`, `radius`, `corner`) that holds other shapes; they are placed from its top-left corner, and clipped to it only when `clip` is `true` | the shapes (any, but `-qr`, `-verification` and a signature; up to 3 groups deep, 300 elements in all) |
 | `draw/svg-path` | one filled path: `d`, `fill`, `rule` | — |
@@ -48,7 +48,7 @@ array( 'color' ) ) ) )`; what an element has beside those keys is what every ele
 
 An element is written with the names a block says, never abbreviated: `width` and `height` (the model's `w` and `h`), `viewBox` (`vw` and `vh`),
 `lineHeight` and `letterSpacing` (`lh` and `ls`, also in the hint and the code of a verification), `horizontal` and `vertical` in a `layout` (`h` and `v`),
-and `bold` and `italic` in a run of a text (`b` and `i`). `x` and `y` and the coordinates of a line (`x1 y1 x2 y2`) stay. An `id` that only counts the
+and the text of a `draw/text` written as text (`runs`, a list of `{ text, b, i }` and `{ field, format, b, i }` in the model). `x` and `y` and the coordinates of a line (`x1 y1 x2 y2`) stay. An `id` that only counts the
 elements (`rect-2`, or the editor's `svg-mwzbwe9c-1`) is not written: it is made again by position (`<type>-<position>`) when the markup is read; an id
 that means something (`title`, `logo`) stays. The name an element has when it is made (`Text`, `Rectangle`, `SVG`…) is not written either: `Names::DEFAULT_NAMES`, and the host's own
 types in the `names` option (`array( 'signature' => 'Signature', 'image:logo' => 'Community logo' )`). `Names::to_attrs()` / `Names::from_attrs()` (PHP) and `toAttrs()` / `fromAttrs()` (TypeScript) do it, inside
@@ -68,3 +68,18 @@ and `Svg::radius()` (PHP). A color may be `currentColor`: the color of the text 
 The page of a design is kept with lengths with their unit (`width`, `height`, `safe`, `bleed`) and **no version**: the unit says what it is. `width` and
 `height` are in the unit that makes both round: `Page::size()` (PHP) and `pageSize()` (TypeScript) give an A4 as `297mm` by `210mm` and a letter as
 `11in` by `8.5in`, and points only when neither unit is round. A page written before (a point as `px`, `841.89px`) is still read.
+
+
+## The text of a text
+
+The `text` attribute of a `draw/text` (and each language of its `variants`) is written as text, the same in the JavaScript and the PHP package
+(`parseRuns` / `Runs::parse`, `runsToText` / `Runs::to_text`; `packages/fixtures/runs.json` is what both read):
+
+```
+Dear [name], welcome to *[event]*, held in _[location]_.
+```
+
+- `[key]` and `[key:format]` are fields; with the `fields` option only those keys are (the others stay text). `{key}`, what files wrote before, is read as a field too.
+- `*…*` is bold (a run of asterisks is one switch, so `**…**` of before is bold) and `_…_` is italic, not inside a word (`snake_case` is text).
+- A switch with no partner (`5 * 3`) is text; a line break is a line break; a backslash before one of `\ * _ [ ] {` makes it text.
+- A file of before, with `runs` (and `bold` and `italic`), is read the same.
