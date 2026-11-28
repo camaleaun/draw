@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { toMarkup, fromMarkup, isMarkup, parse, defaultName } from '../dist/index.js';
+import { toMarkup, fromMarkup, elementsToMarkup, elementsFromMarkup, isMarkup, parse, defaultName } from '../dist/index.js';
 
 const golden = path.join( path.dirname( fileURLToPath( import.meta.url ) ), '..', '..', '..', 'tests', 'golden' );
 // The default name of a type is not written in a file, so it is not read back.
@@ -61,6 +61,29 @@ test( 'the attributes of a core block, one by one', () => {
 	assert.deepEqual( read( { textVariants: [ { pt_BR: 'Ola' }, { es_ES: 'Hola' } ] } ).variants.es_ES, [ { text: 'Hola' } ], 'one object by language is read too' );
 	assert.equal( read( { metadata: { name: 'Body', blockVisibility: false } } ).hidden, true );
 	assert.equal( read( { anchor: 'title' } ).id, 'title' );
+} );
+
+test( 'some elements are block markup with no root, and read back', () => {
+	const elements = [
+		{ id: 'title', type: 'text', x: 1, y: 2, w: 100, h: 20, runs: [ { text: 'Hi ' }, { field: 'name', b: true } ], size: 13 },
+		{ id: 'group-2', type: 'group', x: 0, y: 0, w: 50, h: 50, children: [ { id: 'group-2-rect-1', type: 'rect', x: 0, y: 0, w: 5, h: 5 } ] },
+	];
+	const markup = elementsToMarkup( elements );
+	assert.ok( ! markup.includes( 'wp:events-certificates/certificate' ), 'no root block' );
+	assert.equal( ( parse( markup ) || [] ).length, 2, 'a block for each element' );
+	const back = elementsFromMarkup( markup );
+	assert.deepEqual( back, elements );
+	assert.equal( back[ 1 ].children[ 0 ].id, 'group-2-rect-1' );
+	// A whole certificate gives its front elements only.
+	const design = { page: { w: 100, h: 100 }, elements, back: { elements: [ { id: 'x', type: 'rect' } ] } };
+	assert.deepEqual( elementsFromMarkup( toMarkup( design ) ), elements );
+	// What is not ours is ignored, and nothing is none.
+	assert.deepEqual( elementsFromMarkup( '<!-- wp:core/paragraph --><p>x</p><!-- /wp:core/paragraph -->' + markup ), elements );
+	assert.equal( elementsFromMarkup( '<!-- wp:core/paragraph --><p>x</p><!-- /wp:core/paragraph -->' ), null );
+	assert.equal( elementsFromMarkup( '' ), null );
+	assert.equal( elementsFromMarkup( '<!-- wp:draw/text {"x":} /-->' ), null, 'markup that is not valid' );
+	// The name a block says in `metadata` is the name of the element.
+	assert.equal( elementsFromMarkup( '<!-- wp:draw/rect {"metadata":{"name":"Frame"}} /-->' )[ 0 ].name, 'Frame' );
 } );
 
 test( 'an svg keeps its paths as inner blocks', () => {

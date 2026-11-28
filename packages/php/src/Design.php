@@ -131,6 +131,55 @@ final class Design {
 	}
 
 	/**
+	 * Some elements as block markup, with no root block (what a copy puts on the clipboard, as a block copied from the post editor is).
+	 *
+	 * @param array<int, mixed>    $elements Elements.
+	 * @param array<string, mixed> $options  Options (see the class).
+	 * @return string
+	 */
+	public static function elements_to_markup( array $elements, array $options = array() ) {
+		return Markup::serialize( self::blocks( $elements, self::options( $options ) ) );
+	}
+
+	/**
+	 * The elements of block markup, with an id each (made by position when the block says none): a whole certificate gives its front elements, a block that is not one of ours (or of the
+	 * options') is ignored.
+	 *
+	 * @param string               $markup  Markup.
+	 * @param array<string, mixed> $options Options (see the class).
+	 * @return array<int, array<string, mixed>>|null Null when the markup is not valid or has no element.
+	 */
+	public static function elements_from_markup( $markup, array $options = array() ) {
+		$options = self::options( $options );
+		$parsed  = Markup::parse( $markup );
+		if ( ! $parsed ) {
+			return null;
+		}
+		$list = $parsed;
+		if ( 1 === count( $parsed ) && self::ROOT === $parsed[0]['name'] ) {
+			$list = array_values(
+				array_filter(
+					$parsed[0]['children'],
+					static function ( $block ) {
+						return self::BACK !== $block['name'];
+					}
+				)
+			);
+		}
+		$known = array_merge( array_values( $options['blocks'] ), array( $options['fallback'] ) );
+		$ours  = array_values(
+			array_filter(
+				$list,
+				static function ( $block ) use ( $known ) {
+					return in_array( $block['name'], $known, true );
+				}
+			)
+		);
+
+		return $ours ? Names::with_ids( self::elements( $ours, $options ) ) : null;
+	}
+
+	/**
 	 * Whether a text is block markup of a certificate (and not the JSON an earlier version saved).
 	 *
 	 * @param string $text Text.

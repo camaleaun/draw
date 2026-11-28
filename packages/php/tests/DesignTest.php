@@ -146,6 +146,28 @@ final class DesignTest extends TestCase {
 		$this->assertSame( 'title', $read( array( 'anchor' => 'title' ) )['id'] );
 	}
 
+	/**
+	 * Some elements are block markup with no root, and are read back.
+	 */
+	public function test_some_elements_are_block_markup_with_no_root_and_read_back() {
+		$elements = array(
+			array( 'id' => 'title', 'type' => 'text', 'x' => 1, 'y' => 2, 'w' => 100, 'h' => 20, 'runs' => array( array( 'text' => 'Hi ' ), array( 'field' => 'name', 'b' => true ) ), 'size' => 13 ),
+			array( 'id' => 'group-2', 'type' => 'group', 'x' => 0, 'y' => 0, 'w' => 50, 'h' => 50, 'children' => array( array( 'id' => 'group-2-rect-1', 'type' => 'rect', 'x' => 0, 'y' => 0, 'w' => 5, 'h' => 5 ) ) ),
+		);
+		$markup = Design::elements_to_markup( $elements );
+		$this->assertStringNotContainsString( 'wp:events-certificates/certificate', $markup );
+		$this->assertCount( 2, Markup::parse( $markup ) );
+		$this->assertEquals( $elements, Design::elements_from_markup( $markup ) );
+		$design = array( 'page' => array( 'w' => 100, 'h' => 100 ), 'elements' => $elements, 'back' => array( 'elements' => array( array( 'id' => 'x', 'type' => 'rect' ) ) ) );
+		$this->assertEquals( $elements, Design::elements_from_markup( Design::to_markup( $design ) ) );
+		$paragraph = '<!-- wp:core/paragraph --><p>x</p><!-- /wp:core/paragraph -->';
+		$this->assertEquals( $elements, Design::elements_from_markup( $paragraph . $markup ) );
+		$this->assertNull( Design::elements_from_markup( $paragraph ) );
+		$this->assertNull( Design::elements_from_markup( '' ) );
+		$this->assertNull( Design::elements_from_markup( '<!-- wp:draw/text {"x":} /-->' ) );
+		$this->assertSame( 'Frame', Design::elements_from_markup( '<!-- wp:draw/rect {"metadata":{"name":"Frame"}} /-->' )[0]['name'] );
+	}
+
 	public function test_an_svg_keeps_its_paths_as_inner_blocks() {
 		$markup = Design::to_markup(
 			array(

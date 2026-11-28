@@ -129,5 +129,26 @@ export function fromMarkup( markup: string, options?: Options ): Design | null {
 	return design;
 }
 
+/** Some elements as block markup, with no root block (what a copy puts on the clipboard, as a block copied from the post editor is). */
+export function elementsToMarkup( elements: Attrs[], options?: Options ): string {
+	return serialize( blocks( elements, resolve( options ) ) );
+}
+
+/**
+ * The elements of block markup, with an id each (made by position when the block says none): a whole certificate gives its front elements, a block that is not one of ours (or of the
+ * options') is ignored. Null when the markup is not valid or has no element.
+ */
+export function elementsFromMarkup( markup: string, options?: Options ): Attrs[] | null {
+	const o = resolve( options );
+	const parsed = parse( markup );
+	if ( ! parsed ) {
+		return null;
+	}
+	const list = parsed.length === 1 && parsed[ 0 ].name === ROOT ? parsed[ 0 ].children.filter( ( block ) => block.name !== BACK ) : parsed;
+	const known = [ ...Object.values( o.blocks ), o.fallback ];
+	const ours = list.filter( ( block ) => known.includes( block.name ) );
+	return ours.length ? withIds( ours.map( ( block ) => element( block, o ) ) ) : null;
+}
+
 /** Whether a text is block markup of a certificate (and not the JSON an earlier version saved). */
 export const isMarkup = ( text: unknown ): boolean => typeof text === 'string' && new RegExp( `^\\s*<!--\\s+wp:${ ROOT.replace( '/', '\\/' ) }[\\s>/]` ).test( text );
