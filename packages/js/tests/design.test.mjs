@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { toMarkup, fromMarkup, elementsToMarkup, elementsFromMarkup, isMarkup, parse, defaultName } from '../dist/index.js';
+import { lineHeightFactor, toMarkup, fromMarkup, elementsToMarkup, elementsFromMarkup, isMarkup, parse, defaultName } from '../dist/index.js';
 
 const golden = path.join( path.dirname( fileURLToPath( import.meta.url ) ), '..', '..', '..', 'tests', 'golden' );
 // The default name of a type is not written in a file, so it is not read back.
@@ -48,6 +48,19 @@ for ( const file of readdirSync( path.join( golden, 'markup' ) ).filter( ( name 
 		assert.deepEqual( canon( parse( written ) ), canon( parse( expected ) ) );
 	} );
 }
+
+test( 'a line height in lh is written with no unit: a number with none is the multiplier already', () => {
+	const write = ( element ) => toMarkup( { page: { w: 1, h: 1 }, elements: [ { type: 'text', id: 't', ...element } ] } );
+	assert.ok( write( { lh: '1.4lh' } ).includes( '"lineHeight":"1.4"' ) );
+	assert.ok( ! write( { lh: '1.4lh' } ).includes( 'lh"' ) );
+	assert.ok( write( { lh: 1.4 } ).includes( '"lineHeight":"1.4"' ), 'a number is the same' );
+	assert.ok( write( { lh: '1.4em' } ).includes( '"lineHeight":"1.4em"' ), 'another unit stays' );
+	assert.ok( write( { lh: '120%' } ).includes( '"lineHeight":"120%"' ) );
+	assert.ok( write( { hint: { size: 6, lh: '1.3lh' } } ).includes( '"lineHeight":"1.3"' ), 'in the verification too' );
+	const back = fromMarkup( write( { lh: '1.4lh' } ) ).elements[ 0 ].lh;
+	assert.equal( back, 1.4, 'read back as the number, which is the same line height' );
+	assert.equal( lineHeightFactor( back, 10 ), lineHeightFactor( '1.4lh', 10 ) );
+} );
 
 test( 'the attributes of a core block, one by one', () => {
 	const read = ( attrs, options ) => fromMarkup( `<!-- wp:events-certificates/certificate {"page":{"w":1,"h":1}} --><!-- wp:draw/text ${ JSON.stringify( attrs ) } /--><!-- /wp:events-certificates/certificate -->`, options ).elements[ 0 ];

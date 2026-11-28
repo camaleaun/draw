@@ -109,7 +109,7 @@ is the form 0.25 wrote and `*.new.html` the new one (made by `tests/tools/make-n
 | text `runs`, `variants` | `text` (`[[field]]`, `**bold**`, `*italic*`), `textVariants: [ { "pt_BR": "…", "es_ES": "…" } ]` (an object a language is read too) |
 | `font`, `weight` | `fontFamily` (the slug of a font the host has, else the name as written; `fonts` option), `style.typography.fontWeight` |
 | `size` | `style.typography.fontSize`: `"13pt"` for points, another unit as written (`"4.4mm"`); read `"13px"` is 13 |
-| `lh`, `ls`, `align`, `upper` | `style.typography.lineHeight`, `.letterSpacing`, `.textAlign`, `.textTransform: "uppercase"` |
+| `lh`, `ls`, `align`, `upper` | `style.typography.lineHeight` (a number, or `1.4lh`, is written `"1.4"`: a multiplier has no unit; `em`, `%` and lengths stay), `.letterSpacing`, `.textAlign`, `.textTransform: "uppercase"` |
 | `color`, `fit`, `min` | `style.color.text`, `fitText`, `minFontSize` |
 | `fill`, `stroke`, `strokeWidth`, `dash`, `radius` | `style.color.background`, `style.border.color`, `.width`, `.style`, `.radius` (one length, or `{ topLeft, topRight, bottomRight, bottomLeft }`) |
 | group `arrange`, `justify`, `align`, `columns` | `arrange: { type: "flex", orientation, justifyContent, verticalAlignment }` or `{ type: "grid", columnCount }` (the main axis of a row is horizontal, of a stack vertical) |

@@ -236,6 +236,15 @@ export function fromCore( attrs: Attrs, type: string, fonts?: string[] ): Attrs 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Writing: the element as the attributes of a core block, the way `fromCore` reads them.
 
+/** A line height as a core block says it: a number is the multiplier of the font size ("1.4"), and so is a length in `lh` (`1.4lh`: the unit is left out); any other unit stays. */
+const lineHeightTo = ( value: unknown ): unknown => {
+	if ( typeof value === 'number' ) {
+		return String( value );
+	}
+	const m = typeof value === 'string' ? /^\s*(-?\d*\.?\d+)\s*lh\s*$/i.exec( value ) : null;
+	return m ? String( Number( m[ 1 ] ) ) : value;
+};
+
 /** A number of points as a length with its unit ("13pt"); what is not a number is as it is. */
 const pt = ( value: unknown ): unknown => ( typeof value === 'number' ? `${ value }pt` : value );
 
@@ -276,7 +285,7 @@ function partTo( value: unknown ): unknown {
 		} else if ( key === 'weight' ) {
 			typography.fontWeight = String( item );
 		} else if ( key === 'lineHeight' ) {
-			typography.lineHeight = typeof item === 'number' ? String( item ) : item;
+			typography.lineHeight = lineHeightTo( item );
 		} else if ( key === 'color' ) {
 			out.color = { text: item };
 		} else {
@@ -328,7 +337,7 @@ export function toCore( attrs: Attrs, type: string, fonts?: string[] ): Attrs {
 		} else if ( key === 'size' ) {
 			typography.fontSize = pt( value );
 		} else if ( key === 'lineHeight' ) {
-			typography.lineHeight = typeof value === 'number' ? String( value ) : value;
+			typography.lineHeight = lineHeightTo( value );
 		} else if ( key === 'letterSpacing' ) {
 			typography.letterSpacing = pt( value );
 		} else if ( key === 'align' && ! group ) {

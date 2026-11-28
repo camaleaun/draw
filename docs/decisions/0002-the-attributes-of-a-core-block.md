@@ -23,4 +23,4 @@ text editor, or read by a person, looked like nothing else in the block editor.
 ## Consequences
 
 - A file written by 0.27 loses its places and styles when it is opened by 0.25 or before; the version that only reads (0.26) comes first for that reason.
-- `1.4lh` and `13pt` are read as `1.4` and `13`: the same size, in the form the model keeps.
+- `1.4lh` is written `"1.4"` (a line height with no unit is the multiplier already) and `13pt` is read as `13`: the same size, in the form the model keeps.

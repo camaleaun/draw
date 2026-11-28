@@ -149,6 +149,24 @@ final class DesignTest extends TestCase {
 	}
 
 	/**
+	 * A line height in lh is written with no unit: a number with none is the multiplier already.
+	 */
+	public function test_a_line_height_in_lh_is_written_with_no_unit() {
+		$write = static function ( $element ) {
+			return Design::to_markup( array( 'page' => array( 'w' => 1, 'h' => 1 ), 'elements' => array( array_merge( array( 'type' => 'text', 'id' => 't' ), $element ) ) ) );
+		};
+		$this->assertStringContainsString( '"lineHeight":"1.4"', $write( array( 'lh' => '1.4lh' ) ) );
+		$this->assertStringNotContainsString( 'lh"', $write( array( 'lh' => '1.4lh' ) ) );
+		$this->assertStringContainsString( '"lineHeight":"1.4"', $write( array( 'lh' => 1.4 ) ) );
+		$this->assertStringContainsString( '"lineHeight":"1.4em"', $write( array( 'lh' => '1.4em' ) ) );
+		$this->assertStringContainsString( '"lineHeight":"120%"', $write( array( 'lh' => '120%' ) ) );
+		$this->assertStringContainsString( '"lineHeight":"1.3"', $write( array( 'hint' => array( 'size' => 6, 'lh' => '1.3lh' ) ) ) );
+		$back = Design::from_markup( $write( array( 'lh' => '1.4lh' ) ) )['elements'][0]['lh'];
+		$this->assertSame( 1.4, $back );
+		$this->assertSame( \Camaleaun\Draw\Text::line_height( '1.4lh', 10 ), \Camaleaun\Draw\Text::line_height( $back, 10 ) );
+	}
+
+	/**
 	 * The attributes of a core block, one by one (the same cases as the TypeScript test).
 	 */
 	public function test_the_attributes_of_a_core_block_one_by_one() {

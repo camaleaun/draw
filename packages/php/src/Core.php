@@ -367,6 +367,23 @@ final class Core {
 	}
 
 	/**
+	 * A line height as a core block says it: a number is the multiplier of the font size ("1.4"), and so is a length in `lh` (`1.4lh`: the unit is left out); any other unit stays.
+	 *
+	 * @param mixed $value Value.
+	 * @return mixed
+	 */
+	private static function line_height_to( $value ) {
+		if ( is_int( $value ) || is_float( $value ) ) {
+			return self::num_text( $value );
+		}
+		if ( is_string( $value ) && 1 === preg_match( '/^\s*(-?\d*\.?\d+)\s*lh\s*$/i', $value, $m ) ) {
+			return self::num_text( (float) $m[1] );
+		}
+
+		return $value;
+	}
+
+	/**
 	 * A number of points as a length with its unit ("13pt"); what is not a number is as it is.
 	 *
 	 * @param mixed $value Value.
@@ -437,7 +454,7 @@ final class Core {
 			} elseif ( 'weight' === $key ) {
 				$typography['fontWeight'] = (string) $item;
 			} elseif ( 'lineHeight' === $key ) {
-				$typography['lineHeight'] = ( is_int( $item ) || is_float( $item ) ) ? self::num_text( $item ) : $item;
+				$typography['lineHeight'] = self::line_height_to( $item );
 			} elseif ( 'color' === $key ) {
 				$out['color'] = array( 'text' => $item );
 			} else {
@@ -505,7 +522,7 @@ final class Core {
 			} elseif ( 'size' === $key ) {
 				$typography['fontSize'] = self::pt( $value );
 			} elseif ( 'lineHeight' === $key ) {
-				$typography['lineHeight'] = ( is_int( $value ) || is_float( $value ) ) ? self::num_text( $value ) : $value;
+				$typography['lineHeight'] = self::line_height_to( $value );
 			} elseif ( 'letterSpacing' === $key ) {
 				$typography['letterSpacing'] = self::pt( $value );
 			} elseif ( 'align' === $key && ! $is_group ) {
