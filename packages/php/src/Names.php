@@ -23,7 +23,7 @@ class Names {
 
 	/**
 	 * The name an element has when it is made, by type: it is not written, as the type already says it. A host adds its own (`names` option of `Design`),
-	 * by type or by `type:slot` (`image:logo`).
+	 * by type or by `type:slot` (`image:logo`); a group has one by its layout (`group:row` is Row).
 	 */
 	const DEFAULT_NAMES = array(
 		'text'         => 'Text',
@@ -33,6 +33,9 @@ class Names {
 		'image'        => 'Image',
 		'svg'          => 'SVG',
 		'group'        => 'Group',
+		'group:row'    => 'Row',
+		'group:stack'  => 'Stack',
+		'group:grid'   => 'Grid',
 		'qr'           => 'Authenticity',
 		'verification' => 'Verification',
 	);
@@ -209,7 +212,8 @@ class Names {
 		$slot  = (string) ( $element['slot'] ?? '' );
 		$names = array_merge( self::DEFAULT_NAMES, $names );
 
-		return (string) ( $names[ $type . ':' . $slot ] ?? $names[ $type ] ?? '' );
+		// By `type:slot` (`image:logo`), then, for a group, by its layout (`group:row`), then by type.
+		return (string) ( $names[ $type . ':' . $slot ] ?? ( 'group' === $type ? ( $names[ 'group:' . (string) ( $element['arrange'] ?? '' ) ] ?? null ) : null ) ?? $names[ $type ] ?? '' );
 	}
 
 	/**

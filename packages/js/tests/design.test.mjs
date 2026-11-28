@@ -79,6 +79,22 @@ test( 'the lengths of a file are rounded to eight decimals: no 9.280000000000001
 	assert.equal( back.layout.h.start, '200pt' );
 } );
 
+test( 'the default name of a group follows its layout (Group, Row, Stack, Grid); a name that is the default of its layout is not written', () => {
+	assert.equal( defaultName( { type: 'group' } ), 'Group' );
+	assert.equal( defaultName( { type: 'group', arrange: 'row' } ), 'Row' );
+	assert.equal( defaultName( { type: 'group', arrange: 'stack' } ), 'Stack' );
+	assert.equal( defaultName( { type: 'group', arrange: 'grid' } ), 'Grid' );
+	assert.equal( defaultName( { type: 'verification', arrange: 'row' } ), 'Verification', 'only a group has a name by layout' );
+	assert.equal( defaultName( { type: 'text', slot: 'date', arrange: 'row' }, { 'text:date': 'Date' } ), 'Date', 'a slot still comes first' );
+	assert.equal( defaultName( { type: 'group', arrange: 'row' }, { 'group:row': 'Linha' } ), 'Linha', 'the host may name it' );
+	const write = ( element ) => toMarkup( { page: { w: 1, h: 1 }, elements: [ { type: 'group', id: 'g', x: 0, y: 0, w: 10, h: 10, children: [], ...element } ] } );
+	assert.ok( ! write( { arrange: 'row', name: 'Row' } ).includes( '"name"' ), 'a row named Row says no name' );
+	assert.ok( write( { arrange: 'row', name: 'Group' } ).includes( '"name":"Group"' ), 'a row named Group says it: that is not its default' );
+	assert.ok( ! write( { name: 'Group' } ).includes( '"name"' ), 'a plain group named Group says no name' );
+	assert.ok( write( { arrange: 'row', name: 'Header' } ).includes( '"name":"Header"' ) );
+	assert.equal( fromMarkup( write( { arrange: 'row', name: 'Row' } ) ).elements[ 0 ].name, undefined, 'read back with no name' );
+} );
+
 test( 'the attributes of a core block, one by one', () => {
 	const read = ( attrs, options ) => fromMarkup( `<!-- wp:events-certificates/certificate {"page":{"w":1,"h":1}} --><!-- wp:draw/text ${ JSON.stringify( attrs ) } /--><!-- /wp:events-certificates/certificate -->`, options ).elements[ 0 ];
 	assert.equal( read( { style: { typography: { fontSize: '13px' } } } ).size, 13, 'px is the point' );

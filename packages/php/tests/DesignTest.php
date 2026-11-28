@@ -203,6 +203,27 @@ final class DesignTest extends TestCase {
 	}
 
 	/**
+	 * The default name of a group follows its layout (Group, Row, Stack, Grid); a name that is the default of its layout is not written.
+	 */
+	public function test_the_default_name_of_a_group_follows_its_layout() {
+		$this->assertSame( 'Group', Names::default_name( array( 'type' => 'group' ) ) );
+		$this->assertSame( 'Row', Names::default_name( array( 'type' => 'group', 'arrange' => 'row' ) ) );
+		$this->assertSame( 'Stack', Names::default_name( array( 'type' => 'group', 'arrange' => 'stack' ) ) );
+		$this->assertSame( 'Grid', Names::default_name( array( 'type' => 'group', 'arrange' => 'grid' ) ) );
+		$this->assertSame( 'Verification', Names::default_name( array( 'type' => 'verification', 'arrange' => 'row' ) ) );
+		$this->assertSame( 'Date', Names::default_name( array( 'type' => 'text', 'slot' => 'date', 'arrange' => 'row' ), array( 'text:date' => 'Date' ) ) );
+		$this->assertSame( 'Linha', Names::default_name( array( 'type' => 'group', 'arrange' => 'row' ), array( 'group:row' => 'Linha' ) ) );
+		$write = static function ( $element ) {
+			return Design::to_markup( array( 'page' => array( 'w' => 1, 'h' => 1 ), 'elements' => array( array_merge( array( 'type' => 'group', 'id' => 'g', 'x' => 0, 'y' => 0, 'w' => 10, 'h' => 10, 'children' => array() ), $element ) ) ) );
+		};
+		$this->assertStringNotContainsString( '"name"', $write( array( 'arrange' => 'row', 'name' => 'Row' ) ) );
+		$this->assertStringContainsString( '"name":"Group"', $write( array( 'arrange' => 'row', 'name' => 'Group' ) ) );
+		$this->assertStringNotContainsString( '"name"', $write( array( 'name' => 'Group' ) ) );
+		$this->assertStringContainsString( '"name":"Header"', $write( array( 'arrange' => 'row', 'name' => 'Header' ) ) );
+		$this->assertArrayNotHasKey( 'name', Design::from_markup( $write( array( 'arrange' => 'row', 'name' => 'Row' ) ) )['elements'][0] );
+	}
+
+	/**
 	 * The attributes of a core block, one by one (the same cases as the TypeScript test).
 	 */
 	public function test_the_attributes_of_a_core_block_one_by_one() {

@@ -76,15 +76,17 @@ function names( element: Attrs, full: boolean, fields?: string[], isText = false
 }
 
 /**
- * The name an element has when it is made, by type: it is not written, as the type already says it. A host adds its own (`names` option of `Design`),
- * by type or by `type:slot` (`image:logo`).
+ * The name an element has when it is made, by type: it is not written, as the type already says it. A group has one by its layout (`group:row` is Row), and a host adds its own
+ * (`names` option of `Design`), by type or by `type:slot` (`image:logo`).
  */
-export const DEFAULT_NAMES: Record< string, string > = { text: 'Text', rect: 'Rectangle', ellipse: 'Ellipse', line: 'Line', image: 'Image', svg: 'SVG', group: 'Group', qr: 'Authenticity', verification: 'Verification' };
+export const DEFAULT_NAMES: Record< string, string > = { text: 'Text', rect: 'Rectangle', ellipse: 'Ellipse', line: 'Line', image: 'Image', svg: 'SVG', group: 'Group', 'group:row': 'Row', 'group:stack': 'Stack', 'group:grid': 'Grid', qr: 'Authenticity', verification: 'Verification' };
 
 /** The name an element has when it is made: the host's for its type and slot, else the type's. */
 export function defaultName( element: Attrs, hostNames: Record< string, string > = {} ): string {
 	const all = { ...DEFAULT_NAMES, ...hostNames };
-	return all[ `${ String( element.type ?? '' ) }:${ String( element.slot ?? '' ) }` ] ?? all[ String( element.type ?? '' ) ] ?? '';
+	const type = String( element.type ?? '' );
+	// By `type:slot` (`image:logo`), then, for a group, by its layout (`group:row`), then by type.
+	return all[ `${ type }:${ String( element.slot ?? '' ) }` ] ?? ( type === 'group' ? all[ `group:${ String( element.arrange ?? '' ) }` ] : undefined ) ?? all[ type ] ?? '';
 }
 
 /** An element as the attributes of its block. */

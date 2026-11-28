@@ -51,7 +51,7 @@ An element is written with the names a block says, never abbreviated: `width` an
 and the text of a `draw/text` written as text (`runs`, a list of `{ text, b, i }` and `{ field, format, b, i }` in the model). `x` and `y` and the coordinates of a line (`x1 y1 x2 y2`) stay. An `id` that only counts the
 elements (`rect-2`, or the editor's `svg-mwzbwe9c-1`) is not written: it is made again by position (`<type>-<position>`) when the markup is read; an id
 that means something (`title`, `logo`) stays. The name an element has when it is made (`Text`, `Rectangle`, `SVG`…) is not written either: `Names::DEFAULT_NAMES`, and the host's own
-types in the `names` option (`array( 'signature' => 'Signature', 'image:logo' => 'Community logo' )`). `Names::to_attrs()` / `Names::from_attrs()` (PHP) and `toAttrs()` / `fromAttrs()` (TypeScript) do it, inside
+types in the `names` option (`array( 'signature' => 'Signature', 'image:logo' => 'Community logo' )`). The default name is looked up by `type:slot`, then, for a group, by its layout (`group:row`, `group:stack`, `group:grid`: Row, Stack, Grid), then by type (Group): a group's name that is the default of its own layout is not written. `Names::to_attrs()` / `Names::from_attrs()` (PHP) and `toAttrs()` / `fromAttrs()` (TypeScript) do it, inside
 `Design`; the model in memory, the cleaning and the drawing keep the short names. The shapes of the Draw plugin (`draw/rect`…) have the same attributes
 (`width`, `height`, `viewBox`).
 
