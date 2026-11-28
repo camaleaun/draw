@@ -29,6 +29,40 @@ for ( const file of readdirSync( path.join( golden, 'markup' ) ).filter( ( name 
 	} );
 }
 
+// The format of 0.27 (the attributes a core block says: style.typography, fontFamily, lock, units on every length). The fixture is made by tests/tools/make-new-fixture.py from the
+// table of docs/block-markup.md, not by the package: 0.26 reads it, 0.27 writes it.
+for ( const file of readdirSync( path.join( golden, 'markup' ) ).filter( ( name ) => name.endsWith( '.new.html' ) ) ) {
+	test( `the markup with the attributes of a core block is read back to its design: ${ file }`, () => {
+		const design = JSON.parse( readFileSync( path.join( golden, file.replace( '.new.html', '.json' ) ), 'utf8' ) );
+		const markup = readFileSync( path.join( golden, 'markup', file ), 'utf8' );
+		assert.deepEqual( canon( fromMarkup( markup, { fonts: [ 'Inter', 'Lora' ] } ) ), canon( unnamed( design ) ) );
+	} );
+}
+
+test( 'the attributes of a core block, one by one', () => {
+	const read = ( attrs, options ) => fromMarkup( `<!-- wp:events-certificates/certificate {"page":{"w":1,"h":1}} --><!-- wp:draw/text ${ JSON.stringify( attrs ) } /--><!-- /wp:events-certificates/certificate -->`, options ).elements[ 0 ];
+	assert.equal( read( { style: { typography: { fontSize: '13px' } } } ).size, 13, 'px is the point' );
+	assert.equal( read( { style: { typography: { fontSize: '13pt' } } } ).size, 13 );
+	assert.equal( read( { style: { typography: { fontSize: '4.4mm' } } } ).size, '4.4mm', 'another unit is kept as a length' );
+	assert.equal( read( { style: { typography: { fontSize: 13 } } } ).size, 13 );
+	assert.equal( read( { size: 13 } ).size, 13, 'the form before is read as it was' );
+	assert.equal( read( { size: 9, style: { typography: { fontSize: '13pt' } } } ).size, 13, 'the new form wins' );
+	assert.equal( read( { align: 'left', style: { typography: { textAlign: 'center' } } } ).align, 'center' );
+	assert.equal( read( { lock: { move: true } } ).locked, true );
+	assert.equal( read( { lock: { remove: true } } ).locked, true );
+	assert.equal( read( { lock: 1.5 } ).lock, 1.5, 'the number is the ratio an element keeps' );
+	assert.equal( read( { style: { dimensions: { aspectRatio: '1.5' } } } ).lock, 1.5 );
+	assert.equal( read( { x: '10mm', width: '2in' } ).x, 28.3465 );
+	assert.equal( read( { width: '2in' } ).w, 144 );
+	assert.equal( read( { fontFamily: 'cert-sans' }, { fonts: [ 'CertSans' ] } ).font, 'CertSans', 'a slug of a font the host has is its name' );
+	assert.equal( read( { fontFamily: 'IBMPlexSans' }, { fonts: [ 'CertSans' ] } ).font, 'IBMPlexSans', 'any other value is the name as written' );
+	assert.equal( read( { fontFamily: 'inter' } ).font, 'inter', 'with no list the value is kept' );
+	assert.deepEqual( read( { textVariants: [ { pt_BR: 'Ola', es_ES: 'Hola' } ] } ).variants.pt_BR, [ { text: 'Ola' } ] );
+	assert.deepEqual( read( { textVariants: [ { pt_BR: 'Ola' }, { es_ES: 'Hola' } ] } ).variants.es_ES, [ { text: 'Hola' } ], 'one object by language is read too' );
+	assert.equal( read( { metadata: { name: 'Body', blockVisibility: false } } ).hidden, true );
+	assert.equal( read( { anchor: 'title' } ).id, 'title' );
+} );
+
 test( 'an svg keeps its paths as inner blocks', () => {
 	const markup = toMarkup( { page: { w: 10, h: 10 }, elements: [ { type: 'svg', id: 's', vw: 24, vh: 24, paths: [ { d: 'M0 0L1 1Z', fill: '$text' }, { d: 'M2 2L3 3Z' } ] } ] } );
 	assert.equal( ( markup.match( /wp:draw\/svg-path/g ) || [] ).length, 2 );

@@ -34,11 +34,12 @@ export const BLOCKS: Record< string, string > = {
 	verification: 'events-certificates/certificate-verification',
 };
 
-export type Options = { fields?: string[]; blocks?: Record< string, string >; fallback?: string; paths?: 'inner' | 'attribute'; names?: Record< string, string > };
-type Resolved = { fields?: string[]; blocks: Record< string, string >; fallback: string; paths: 'inner' | 'attribute'; names: Record< string, string > };
+export type Options = { fields?: string[]; fonts?: string[]; blocks?: Record< string, string >; fallback?: string; paths?: 'inner' | 'attribute'; names?: Record< string, string > };
+type Resolved = { fields?: string[]; fonts?: string[]; blocks: Record< string, string >; fallback: string; paths: 'inner' | 'attribute'; names: Record< string, string > };
 
 const resolve = ( options: Options = {} ): Resolved => ( {
 	fields: Array.isArray( options.fields ) ? options.fields.map( String ) : undefined,
+	fonts: Array.isArray( options.fonts ) ? options.fonts.map( String ) : undefined,
 	blocks: { ...BLOCKS, ...( options.blocks || {} ) },
 	fallback: options.fallback || FALLBACK,
 	paths: options.paths === 'attribute' ? 'attribute' : 'inner',
@@ -82,11 +83,11 @@ function blocks( elements: unknown, o: Resolved ): Block[] {
 
 function element( block: Block, o: Resolved ): Attrs {
 	if ( block.name === o.fallback ) {
-		return fromAttrs( block.attrs, o.fields );
+		return fromAttrs( block.attrs, o.fields, false, String( block.attrs.type ?? '' ), o.fonts );
 	}
 	const key = Object.keys( o.blocks ).find( ( name ) => o.blocks[ name ] === block.name ) ?? '';
 	const [ type, ...slot ] = key.split( ':' );
-	const out: Attrs = { type, ...fromAttrs( block.attrs, o.fields, type === 'text' ), ...( slot.length ? { slot: slot.join( ':' ) } : {} ) };
+	const out: Attrs = { type, ...fromAttrs( block.attrs, o.fields, type === 'text', type, o.fonts ), ...( slot.length ? { slot: slot.join( ':' ) } : {} ) };
 	if ( type === 'group' ) {
 		out.children = block.children.map( ( child ) => element( child, o ) );
 	}

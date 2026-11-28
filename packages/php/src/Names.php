@@ -216,11 +216,14 @@ class Names {
 	 * @param array<string, mixed>    $attrs   Attributes.
 	 * @param array<int, string>|null $fields  The keys that are fields (null: any valid key).
 	 * @param bool                    $is_text Whether it is the block of a text (its `text` is written text, to read as runs).
+	 * @param string                  $type    The type of the element ('' when it is not known).
+	 * @param array<int, string>|null $fonts   The families the host has (a `fontFamily` slug is read as the name of one of them).
 	 * @return array<string, mixed>
 	 */
-	public static function from_attrs( array $attrs, $fields = null, $is_text = false ) {
+	public static function from_attrs( array $attrs, $fields = null, $is_text = false, $type = '', $fonts = null ) {
 		$out = array();
-		foreach ( self::names( $attrs, false, $fields, $is_text ) as $key => $value ) {
+		// The attributes of a core block (`style.typography`, `fontFamily`, lengths with units) are read as the names the file used before: both forms come through the same code.
+		foreach ( self::names( Core::from_core( $attrs, '' !== $type ? $type : ( $is_text ? 'text' : '' ), $fonts ), false, $fields, $is_text ) as $key => $value ) {
 			if ( 'width' === $key ) {
 				$out['w'] = $value;
 			} elseif ( 'height' === $key ) {

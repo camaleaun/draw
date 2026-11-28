@@ -90,6 +90,62 @@ final class DesignTest extends TestCase {
 		$this->assertSame( json_encode( $this->canon( $design ) ), json_encode( $this->canon( Design::from_markup( $markup ) ) ) );
 	}
 
+	public function written_with_core_attributes() {
+		$out = array();
+		foreach ( glob( __DIR__ . '/../../../tests/golden/markup/*.new.html' ) as $file ) {
+			$out[ basename( $file ) ] = array( $file );
+		}
+		return $out;
+	}
+
+	/**
+	 * The markup with the attributes of a core block (made by tests/tools/make-new-fixture.py from the table of docs/block-markup.md, not by the package) is read back to its design.
+	 *
+	 * @dataProvider written_with_core_attributes
+	 */
+	public function test_the_markup_with_the_attributes_of_a_core_block_is_read_back_to_its_design( $file ) {
+		$design  = json_decode( file_get_contents( str_replace( array( '/markup/', '.new.html' ), array( '/', '.json' ), $file ) ), true );
+		$unnamed = static function ( $sheet ) {
+			foreach ( $sheet['elements'] ?? array() as $i => $element ) {
+				if ( isset( $element['name'] ) && Names::default_name( $element ) === $element['name'] ) {
+					unset( $sheet['elements'][ $i ]['name'] );
+				}
+			}
+
+			return $sheet;
+		};
+		$design = $unnamed( $design );
+		$this->assertSame( json_encode( $this->canon( $design ) ), json_encode( $this->canon( Design::from_markup( file_get_contents( $file ), array( 'fonts' => array( 'Inter', 'Lora' ) ) ) ) ) );
+	}
+
+	/**
+	 * The attributes of a core block, one by one (the same cases as the TypeScript test).
+	 */
+	public function test_the_attributes_of_a_core_block_one_by_one() {
+		$read = static function ( $attrs, $options = array() ) {
+			return Design::from_markup( '<!-- wp:events-certificates/certificate {"page":{"w":1,"h":1}} --><!-- wp:draw/text ' . json_encode( $attrs ) . ' /--><!-- /wp:events-certificates/certificate -->', $options )['elements'][0];
+		};
+		$this->assertSame( 13, $read( array( 'style' => array( 'typography' => array( 'fontSize' => '13px' ) ) ) )['size'] );
+		$this->assertSame( 13, $read( array( 'style' => array( 'typography' => array( 'fontSize' => '13pt' ) ) ) )['size'] );
+		$this->assertSame( '4.4mm', $read( array( 'style' => array( 'typography' => array( 'fontSize' => '4.4mm' ) ) ) )['size'] );
+		$this->assertSame( 13, $read( array( 'size' => 13 ) )['size'] );
+		$this->assertSame( 13, $read( array( 'size' => 9, 'style' => array( 'typography' => array( 'fontSize' => '13pt' ) ) ) )['size'], 'The new form wins.' );
+		$this->assertSame( 'center', $read( array( 'align' => 'left', 'style' => array( 'typography' => array( 'textAlign' => 'center' ) ) ) )['align'] );
+		$this->assertTrue( $read( array( 'lock' => array( 'move' => true ) ) )['locked'] );
+		$this->assertTrue( $read( array( 'lock' => array( 'remove' => true ) ) )['locked'] );
+		$this->assertSame( 1.5, $read( array( 'lock' => 1.5 ) )['lock'] );
+		$this->assertSame( 1.5, $read( array( 'style' => array( 'dimensions' => array( 'aspectRatio' => '1.5' ) ) ) )['lock'] );
+		$this->assertSame( 28.3465, $read( array( 'x' => '10mm' ) )['x'] );
+		$this->assertSame( 144, $read( array( 'width' => '2in' ) )['w'] );
+		$this->assertSame( 'CertSans', $read( array( 'fontFamily' => 'cert-sans' ), array( 'fonts' => array( 'CertSans' ) ) )['font'] );
+		$this->assertSame( 'IBMPlexSans', $read( array( 'fontFamily' => 'IBMPlexSans' ), array( 'fonts' => array( 'CertSans' ) ) )['font'] );
+		$this->assertSame( 'inter', $read( array( 'fontFamily' => 'inter' ) )['font'] );
+		$this->assertSame( array( array( 'text' => 'Ola' ) ), $read( array( 'textVariants' => array( array( 'pt_BR' => 'Ola', 'es_ES' => 'Hola' ) ) ) )['variants']['pt_BR'] );
+		$this->assertSame( array( array( 'text' => 'Hola' ) ), $read( array( 'textVariants' => array( array( 'pt_BR' => 'Ola' ), array( 'es_ES' => 'Hola' ) ) ) )['variants']['es_ES'] );
+		$this->assertTrue( $read( array( 'metadata' => array( 'name' => 'Body', 'blockVisibility' => false ) ) )['hidden'] );
+		$this->assertSame( 'title', $read( array( 'anchor' => 'title' ) )['id'] );
+	}
+
 	public function test_an_svg_keeps_its_paths_as_inner_blocks() {
 		$markup = Design::to_markup(
 			array(

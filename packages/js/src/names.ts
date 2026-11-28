@@ -5,6 +5,7 @@
  *
  * The same as `Names` of the PHP package.
  */
+import { fromCore } from './core';
 import { parseRuns, runsToText, type Run } from './runs';
 
 type Attrs = Record< string, unknown >;
@@ -113,9 +114,10 @@ export function toAttrs( element: Attrs, hostNames: Record< string, string > = {
 }
 
 /** The attributes of a block as an element, with no id when the block said none. */
-export function fromAttrs( attrs: Attrs, fields?: string[], isText = false ): Attrs {
+export function fromAttrs( attrs: Attrs, fields?: string[], isText = false, type = '', fonts?: string[] ): Attrs {
 	const out: Attrs = {};
-	for ( const [ key, value ] of Object.entries( names( attrs, false, fields, isText ) ) ) {
+	// The attributes of a core block (`style.typography`, `fontFamily`, lengths with units) are read as the names the file used before: both forms come through the same code.
+	for ( const [ key, value ] of Object.entries( names( fromCore( attrs, type || ( isText ? 'text' : '' ), fonts ), false, fields, isText ) ) ) {
 		const box = typeof value === 'string' ? /^\s*[-\d.]+[\s,]+[-\d.]+[\s,]+([\d.]+)[\s,]+([\d.]+)\s*$/.exec( value ) : null;
 		if ( key === 'width' ) {
 			out.w = value;

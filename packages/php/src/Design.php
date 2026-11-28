@@ -54,11 +54,12 @@ final class Design {
 	 * The options with their defaults.
 	 *
 	 * @param array<string, mixed> $options Options (see the class).
-	 * @return array{fields: array<int, string>|null, blocks: array<string, string>, fallback: string, paths: string, names: array<string, string>}
+	 * @return array{fields: array<int, string>|null, fonts: array<int, string>|null, blocks: array<string, string>, fallback: string, paths: string, names: array<string, string>}
 	 */
 	private static function options( array $options ) {
 		return array(
 			'fields'   => is_array( $options['fields'] ?? null ) ? array_values( array_map( 'strval', $options['fields'] ) ) : null,
+			'fonts'    => is_array( $options['fonts'] ?? null ) ? array_values( array_map( 'strval', $options['fonts'] ) ) : null,
 			'blocks'   => array_merge( self::BLOCKS, is_array( $options['blocks'] ?? null ) ? $options['blocks'] : array() ),
 			'fallback' => is_string( $options['fallback'] ?? null ) ? $options['fallback'] : self::FALLBACK,
 			'paths'    => 'attribute' === ( $options['paths'] ?? '' ) ? 'attribute' : 'inner',
@@ -220,12 +221,12 @@ final class Design {
 	 */
 	private static function element( array $block, array $options ) {
 		if ( $options['fallback'] === $block['name'] ) {
-			return Names::from_attrs( $block['attrs'], $options['fields'] );
+			return Names::from_attrs( $block['attrs'], $options['fields'], false, (string) ( $block['attrs']['type'] ?? '' ), $options['fonts'] );
 		}
 		$key     = (string) array_search( $block['name'], $options['blocks'], true );
 		$parts   = explode( ':', $key, 2 );
 		$type    = $parts[0];
-		$element = array( 'type' => $type ) + Names::from_attrs( $block['attrs'], $options['fields'], 'text' === $type );
+		$element = array( 'type' => $type ) + Names::from_attrs( $block['attrs'], $options['fields'], 'text' === $type, $type, $options['fonts'] );
 		if ( isset( $parts[1] ) ) {
 			$element['slot'] = $parts[1];
 		}
