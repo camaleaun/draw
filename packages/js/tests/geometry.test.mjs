@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { lineHeightFactor, letterSpacingPt, placeChildren, flowBoxes, radiusPt, pageSize, parseLen, isLen, refBox, resolve, placed, layoutFrom, lockedRatio, rectPath, svgCodeAllowed, isPathData, isFill, pathVerdict, SVG_LIMITS, PICTURE_PATH_DATA } from '../dist/index.js';
+import { fontSizePt, lineHeightFactor, letterSpacingPt, placeChildren, flowBoxes, radiusPt, pageSize, parseLen, isLen, refBox, resolve, placed, layoutFrom, lockedRatio, rectPath, svgCodeAllowed, isPathData, isFill, pathVerdict, SVG_LIMITS, PICTURE_PATH_DATA } from '../dist/index.js';
 
 const page = { w: 800, h: 600, safe: 28.3465 };
 
@@ -211,4 +211,21 @@ test( 'a path of a template is left out only past 100000 characters, a picture\'
 	assert.equal( pathVerdict( '' ), 'empty' );
 	assert.equal( pathVerdict( 'M0 0 <script>' ), 'not-data' );
 	assert.equal( pathVerdict( 'L1 1' ), 'not-data', 'it starts with a move' );
+} );
+
+
+test( 'a font size is points, or a length with its unit (px, pt, mm, cm, in): fontSizePt gives the points', () => {
+	assert.equal( fontSizePt( 12.5 ), 12.5 );
+	assert.equal( fontSizePt( '12.5' ), 12.5, 'no unit: points' );
+	assert.equal( fontSizePt( '12.5pt' ), 12.5 );
+	assert.equal( fontSizePt( '16px' ), 16, 'px is the point' );
+	assert.equal( fontSizePt( '4.4mm' ), 12.47246 );
+	assert.equal( fontSizePt( '0.5in' ), 36 );
+	assert.equal( fontSizePt( '1cm' ), 28.3465 );
+	assert.equal( fontSizePt( '4.12345678mm' ), 11.68855676 );
+	assert.equal( fontSizePt( undefined ), 14, 'none is the default size' );
+	assert.equal( fontSizePt( 'abc', 10 ), 10, 'what is not a length is the fallback' );
+	assert.equal( fontSizePt( '1.5em' ), 14, 'em is not a unit of a font size' );
+	assert.equal( fontSizePt( 0 ), 14 );
+	assert.equal( fontSizePt( '-3mm' ), 14 );
 } );

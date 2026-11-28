@@ -17,6 +17,24 @@ export function parseTextLength( value: unknown ): { n: number; unit: string } |
 	return m ? { n: Number( m[ 1 ] ), unit: ( m[ 2 ] || '' ).toLowerCase() } : null;
 }
 
+const FONT_SIZE = /^\s*(\d*\.?\d+)\s*(px|pt|mm|cm|in)?\s*$/i;
+
+/** The units a font size may be written in (a number is points). */
+export const FONT_SIZE_UNITS = [ 'px', 'pt', 'mm', 'cm', 'in' ] as const;
+
+/**
+ * A font size in points: a number is points, a text is a length with its unit (`12.5pt`, `4.4mm`, `16px`; no unit is points) rounded to eight decimals. `fallback` (14) for none or
+ * for what is not a size (an `em` is not one: it is a multiple of the font size).
+ */
+export function fontSizePt( value: unknown, fallback = 14 ): number {
+	if ( typeof value === 'number' ) {
+		return value > 0 ? value : fallback;
+	}
+	const m = typeof value === 'string' ? FONT_SIZE.exec( value ) : null;
+	const n = m ? Number( m[ 1 ] ) : 0;
+	return m && n > 0 ? Math.round( n * ( UNITS[ ( m[ 2 ] || 'pt' ).toLowerCase() ] || 1 ) * 1e8 ) / 1e8 : fallback;
+}
+
 /** The line height as a multiplier of the font size: 1.2 for none (or what is not a length). */
 export function lineHeightFactor( value: TextLength | undefined, size: number, fallback = 1.2 ): number {
 	if ( typeof value === 'number' ) {

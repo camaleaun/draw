@@ -4,6 +4,7 @@ namespace Camaleaun\Draw\Tests;
 use Camaleaun\Draw\Clean;
 use Camaleaun\Draw\Page;
 use Camaleaun\Draw\Paths;
+use Camaleaun\Draw\Text;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -424,26 +425,43 @@ final class CleanTest extends TestCase {
 	}
 
 	/**
-	 * A text keeps the unit its font size was shown in (px, mm, cm, in) beside the size, which stays in points; points are the default and write nothing, and what is not
-	 * a unit of ours is dropped. The size is kept with every decimal it has.
+	 * A font size is a number of points or a length with its unit (px, pt, mm, cm, in), kept as it was written: the unit is in the length, as a margin's, a line height's and a
+	 * letter spacing's are. A length outside 1 to 1000 points, or with another unit, is dropped; a number keeps every decimal it has.
 	 */
-	public function test_a_text_keeps_the_unit_of_its_font_size() {
-		$text   = static function ( array $more ) {
+	public function test_a_font_size_may_be_a_length_with_its_unit() {
+		$text = static function ( $size ) {
 			return array(
 				'page'     => array( 'width' => '297mm', 'height' => '210mm' ),
-				'elements' => array( array_merge( array( 'id' => 'a', 'type' => 'text', 'x' => 0, 'y' => 0, 'w' => 100, 'h' => 20, 'runs' => array( array( 'text' => 'Hi' ) ) ), $more ) ),
+				'elements' => array( array( 'id' => 'a', 'type' => 'text', 'x' => 0, 'y' => 0, 'w' => 100, 'h' => 20, 'runs' => array( array( 'text' => 'Hi' ) ), 'size' => $size ) ),
 			);
 		};
-		foreach ( array( 'px', 'mm', 'cm', 'in' ) as $unit ) {
-			$out = $this->clean()->design( $text( array( 'size' => 12.47246, 'sizeUnit' => $unit ) ) )['elements'][0];
-			$this->assertSame( $unit, $out['sizeUnit'], $unit );
-			$this->assertSame( 12.47246, $out['size'] );
+		$kept = array(
+			'12.47246mm'    => '12.47246mm',
+			'4.4mm'         => '4.4mm',
+			'16px'          => '16px',
+			'12.5pt'        => '12.5pt',
+			'0.5in'         => '0.5in',
+			'1cm'           => '1cm',
+			'4.123456789mm' => '4.12345679mm',
+			' 4.4 MM '      => '4.4mm',
+		);
+		foreach ( $kept as $written => $expected ) {
+			$out = $this->clean()->design( $text( $written ) )['elements'][0];
+			$this->assertSame( $expected, $out['size'], $written );
+			$this->assertArrayNotHasKey( 'sizeUnit', $out );
 		}
-		foreach ( array( 'pt', 'em', 'MM', 5, null, '' ) as $not ) {
-			$out = $this->clean()->design( $text( array( 'size' => 14, 'sizeUnit' => $not ) ) )['elements'][0];
-			$this->assertArrayNotHasKey( 'sizeUnit', $out, var_export( $not, true ) );
+		foreach ( array( '1.5em', '50%', '0mm', '-3mm', '100in', '0.1mm', 'abc', '' ) as $dropped ) {
+			$this->assertArrayNotHasKey( 'size', $this->clean()->design( $text( $dropped ) )['elements'][0], $dropped );
 		}
-		$out = $this->clean()->design( $text( array( 'size' => 12.12345679 ) ) )['elements'][0];
-		$this->assertSame( 12.12345679, $out['size'], 'No rounding.' );
+		// A number is points, as it always was, with every decimal and in its range.
+		$this->assertSame( 12.47246, $this->clean()->design( $text( 12.47246 ) )['elements'][0]['size'] );
+		$this->assertSame( 12.12345679, $this->clean()->design( $text( 12.12345679 ) )['elements'][0]['size'] );
+		$this->assertSame( 1000, $this->clean()->design( $text( 5000 ) )['elements'][0]['size'] );
+		// What is read back: points.
+		$this->assertSame( 12.47246, Text::font_size( '4.4mm' ) );
+		$this->assertSame( 14.0, Text::font_size( null ) );
+		$this->assertSame( 12.5, Text::font_size( 12.5 ) );
+		$this->assertSame( 36.0, Text::font_size( '0.5in' ) );
+		$this->assertSame( 10.0, Text::font_size( '2em', 10 ) );
 	}
 }

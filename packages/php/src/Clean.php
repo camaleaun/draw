@@ -395,10 +395,15 @@ final class Clean {
 				}
 				$out['font'] = call_user_func( $this->env['font_name'], (string) ( $element['font'] ?? '' ) );
 				$number( 'weight', 100, 900 );
-				$number( 'size', 1, 1000 );
-				// The unit the size is shown in (the size itself stays in points); points are the default and are not written.
-				if ( in_array( $element['sizeUnit'] ?? '', array( 'px', 'mm', 'cm', 'in' ), true ) ) {
-					$out['sizeUnit'] = $element['sizeUnit'];
+				$size = $element['size'] ?? null;
+				if ( is_string( $size ) && 1 === preg_match( Text::FONT_SIZE, $size, $parts ) && '' !== ( $parts[2] ?? '' ) ) {
+					// A length with its unit is kept as it was written (up to eight decimals) when it is between 1 and 1000 points.
+					$points = Text::font_size( $size, 0 );
+					if ( $points >= 1 && $points <= 1000 ) {
+						$out['size'] = ( round( (float) $parts[1], 8 ) + 0 ) . strtolower( $parts[2] );
+					}
+				} else {
+					$number( 'size', 1, 1000 );
 				}
 				$color( 'color' );
 				if ( in_array( $element['align'] ?? '', array( 'left', 'center', 'right' ), true ) ) {
