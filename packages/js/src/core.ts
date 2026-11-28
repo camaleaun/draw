@@ -239,14 +239,30 @@ export function fromCore( attrs: Attrs, type: string, fonts?: string[] ): Attrs 
 /** A line height as a core block says it: a number is the multiplier of the font size ("1.4"), and so is a length in `lh` (`1.4lh`: the unit is left out); any other unit stays. */
 const lineHeightTo = ( value: unknown ): unknown => {
 	if ( typeof value === 'number' ) {
-		return String( value );
+		return String( round8( value ) );
 	}
 	const m = typeof value === 'string' ? /^\s*(-?\d*\.?\d+)\s*lh\s*$/i.exec( value ) : null;
-	return m ? String( Number( m[ 1 ] ) ) : value;
+	return m ? String( round8( Number( m[ 1 ] ) ) ) : value;
 };
 
-/** A number of points as a length with its unit ("13pt"); what is not a number is as it is. */
-const pt = ( value: unknown ): unknown => ( typeof value === 'number' ? `${ value }pt` : value );
+const NUMBER_WITH_UNIT = /^(\s*-?\d*\.?\d+(?:e[+-]?\d+)?)\s*(px|pt|mm|cm|in|%|em)\s*$/i;
+
+/** A length written as text with its number rounded to eight decimals (`9.280000000000001pt` is `9.28pt`, `2.8e-14pt` is `0pt`); any other text is as it is. */
+const roundLength = ( value: unknown ): unknown => {
+	const m = typeof value === 'string' ? NUMBER_WITH_UNIT.exec( value ) : null;
+	return m ? `${ round8( Number( m[ 1 ] ) ) }${ m[ 2 ].toLowerCase() }` : value;
+};
+
+/** A number of points as a length with its unit ("13pt"), rounded to eight decimals; a length written as text is rounded as well; what is not a length is as it is. */
+const pt = ( value: unknown ): unknown => ( typeof value === 'number' ? `${ round8( value ) }pt` : roundLength( value ) );
+
+/** The lengths of an axis of a layout (`start`, `end`, `size`), rounded. */
+const roundLayout = ( value: unknown ): unknown => {
+	if ( ! isObject( value ) ) {
+		return value;
+	}
+	return Object.fromEntries( Object.entries( value ).map( ( [ k, v ] ) => [ k, isObject( v ) ? Object.fromEntries( Object.entries( v ).map( ( [ axis, item ] ) => [ axis, [ 'start', 'end', 'size' ].includes( axis ) ? roundLength( item ) : item ] ) ) : v ] ) );
+};
 
 const WRITE_HORIZONTAL: Record< string, string > = { start: 'left', center: 'center', end: 'right', between: 'space-between' };
 const WRITE_VERTICAL: Record< string, string > = { start: 'top', center: 'center', end: 'bottom', between: 'space-between' };
@@ -315,7 +331,7 @@ export function toCore( attrs: Attrs, type: string, fonts?: string[] ): Attrs {
 				out.lock = { move: true, remove: true };
 			}
 		} else if ( key === 'lock' ) {
-			dimensions.aspectRatio = String( value );
+			dimensions.aspectRatio = typeof value === 'number' ? String( round8( value ) ) : String( value );
 		} else if ( key === 'name' ) {
 			metadata.name = value;
 		} else if ( key === 'hidden' ) {
@@ -327,7 +343,7 @@ export function toCore( attrs: Attrs, type: string, fonts?: string[] ): Attrs {
 		} else if ( key === 'min' ) {
 			out.minFontSize = pt( value );
 		} else if ( key === 'layout' && isObject( value ) ) {
-			out.layout = Object.fromEntries( Object.entries( value ).map( ( [ k, v ] ) => [ k === 'ref' ? 'reference' : k, v ] ) );
+			out.layout = Object.fromEntries( Object.entries( roundLayout( value ) as Attrs ).map( ( [ k, v ] ) => [ k === 'ref' ? 'reference' : k, v ] ) );
 		} else if ( key === 'variants' && isObject( value ) ) {
 			out.textVariants = [ value ];
 		} else if ( key === 'font' ) {

@@ -361,7 +361,7 @@ final class Core {
 	 * @return string
 	 */
 	private static function num_text( $n ) {
-		$text = (string) json_encode( $n + 0 );
+		$text = (string) json_encode( round( (float) $n, 8 ) );
 
 		return '.0' === substr( $text, -2 ) ? substr( $text, 0, -2 ) : $text;
 	}
@@ -390,7 +390,41 @@ final class Core {
 	 * @return mixed
 	 */
 	private static function pt( $value ) {
-		return ( is_int( $value ) || is_float( $value ) ) ? self::num_text( $value ) . 'pt' : $value;
+		return ( is_int( $value ) || is_float( $value ) ) ? self::num_text( $value ) . 'pt' : self::round_length( $value );
+	}
+
+	/**
+	 * A length written as text with its number rounded to eight decimals (`9.280000000000001pt` is `9.28pt`, `2.8e-14pt` is `0pt`); any other text is as it is.
+	 *
+	 * @param mixed $value Value.
+	 * @return mixed
+	 */
+	private static function round_length( $value ) {
+		if ( is_string( $value ) && 1 === preg_match( '/^\s*(-?\d*\.?\d+(?:e[+-]?\d+)?)\s*(px|pt|mm|cm|in|%|em)\s*$/i', $value, $m ) ) {
+			return self::num_text( (float) $m[1] ) . strtolower( $m[2] );
+		}
+
+		return $value;
+	}
+
+	/**
+	 * The lengths of the axes of a layout (`start`, `end`, `size`), rounded.
+	 *
+	 * @param array<string, mixed> $layout Layout.
+	 * @return array<string, mixed>
+	 */
+	private static function round_layout( array $layout ) {
+		foreach ( $layout as $key => $axis ) {
+			if ( is_array( $axis ) ) {
+				foreach ( array( 'start', 'end', 'size' ) as $name ) {
+					if ( isset( $axis[ $name ] ) ) {
+						$layout[ $key ][ $name ] = self::round_length( $axis[ $name ] );
+					}
+				}
+			}
+		}
+
+		return $layout;
 	}
 
 	/**
@@ -509,7 +543,7 @@ final class Core {
 				$out['minFontSize'] = self::pt( $value );
 			} elseif ( 'layout' === $key && is_array( $value ) ) {
 				$layout = array();
-				foreach ( $value as $k => $v ) {
+				foreach ( self::round_layout( $value ) as $k => $v ) {
 					$layout['ref' === $k ? 'reference' : $k] = $v;
 				}
 				$out['layout'] = $layout;

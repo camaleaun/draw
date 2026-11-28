@@ -167,6 +167,42 @@ final class DesignTest extends TestCase {
 	}
 
 	/**
+	 * The lengths of a file are rounded to eight decimals: no 9.280000000000001pt, no 2.8e-14.
+	 */
+	public function test_the_lengths_of_a_file_are_rounded_to_eight_decimals() {
+		$markup = Design::to_markup(
+			array(
+				'page'     => array( 'w' => 1, 'h' => 1 ),
+				'elements' => array(
+					array(
+						'type'        => 'rect',
+						'id'          => 'r',
+						'x'           => 9.280000000000001,
+						'y'           => 473.49999999999994,
+						'w'           => 2.842170943040401e-14,
+						'h'           => 57.83000000000004,
+						'strokeWidth' => 0.30000000000000004,
+						'lock'        => 1.4378106803010937,
+						'layout'      => array(
+							'h'   => array( 'mode' => 'start', 'start' => '199.99999999999994pt', 'size' => '2.842170943040401e-14pt' ),
+							'v'   => array( 'mode' => 'end', 'end' => '39.610000000000014pt', 'size' => '50%' ),
+							'ref' => 'page',
+						),
+					),
+				),
+			)
+		);
+		foreach ( array( '"x":"9.28pt"', '"y":"473.5pt"', '"width":"0pt"', '"height":"57.83pt"', '"width":"0.3pt"', '"aspectRatio":"1.43781068"', '"start":"200pt"', '"size":"0pt"', '"end":"39.61pt"', '"size":"50%"' ) as $part ) {
+			$this->assertStringContainsString( $part, $markup );
+		}
+		$this->assertSame( 0, preg_match( '/\d{9,}|e-\d/', $markup ), 'No long number left.' );
+		$back = Design::from_markup( $markup )['elements'][0];
+		$this->assertSame( 9.28, $back['x'] );
+		$this->assertSame( 57.83, $back['h'] );
+		$this->assertSame( '200pt', $back['layout']['h']['start'] );
+	}
+
+	/**
 	 * The attributes of a core block, one by one (the same cases as the TypeScript test).
 	 */
 	public function test_the_attributes_of_a_core_block_one_by_one() {

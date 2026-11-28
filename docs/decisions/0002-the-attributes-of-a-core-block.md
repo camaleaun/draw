@@ -20,6 +20,9 @@ text editor, or read by a person, looked like nothing else in the block editor.
 - A group says its layout in `arrange` (the object core's layout has: `type`, `orientation`, `justifyContent`, `verticalAlignment`, `columnCount`), not in `layout`, which holds the anchors.
 - The tests read `tests/golden/markup/*.old.html` (what 0.25 wrote) and `*.new.html` (made by `tests/tools/make-new-fixture.py` from the table, not by the package) in both twins.
 
+- Every length a file says is rounded to eight decimals (as CSS does), whatever noise a drag left in the number: `9.28pt`, not `9.280000000000001pt`, and no `2.8e-14`. That goes for the lengths of a layout
+  and the ratio a lock keeps too.
+
 ## Consequences
 
 - A file written by 0.27 loses its places and styles when it is opened by 0.25 or before; the version that only reads (0.26) comes first for that reason.

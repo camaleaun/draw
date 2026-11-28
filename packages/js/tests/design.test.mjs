@@ -62,6 +62,23 @@ test( 'a line height in lh is written with no unit: a number with none is the mu
 	assert.equal( lineHeightFactor( back, 10 ), lineHeightFactor( '1.4lh', 10 ) );
 } );
 
+test( 'the lengths of a file are rounded to eight decimals: no 9.280000000000001pt, no 2.8e-14', () => {
+	const write = ( element ) => toMarkup( { page: { w: 1, h: 1 }, elements: [ { type: 'rect', id: 'r', ...element } ] } );
+	const markup = write( {
+		x: 9.280000000000001, y: 473.49999999999994, w: 2.842170943040401e-14, h: 57.83000000000004, strokeWidth: 0.30000000000000004, lock: 1.4378106803010937,
+		layout: { h: { mode: 'start', start: '199.99999999999994pt', size: '2.842170943040401e-14pt' }, v: { mode: 'end', end: '39.610000000000014pt', size: '50%' }, ref: 'page' },
+	} );
+	assert.ok( markup.includes( '"x":"9.28pt"' ) && markup.includes( '"y":"473.5pt"' ) && markup.includes( '"width":"0pt"' ) && markup.includes( '"height":"57.83pt"' ) );
+	assert.ok( markup.includes( '"width":"0.3pt"' ), 'a stroke' );
+	assert.ok( markup.includes( '"aspectRatio":"1.43781068"' ), 'the ratio kept' );
+	assert.ok( markup.includes( '"start":"200pt"' ) && markup.includes( '"size":"0pt"' ) && markup.includes( '"end":"39.61pt"' ) && markup.includes( '"size":"50%"' ), 'what a layout says' );
+	assert.equal( /\d{9,}|e-\d/.test( markup ), false, 'no long number left: ' + markup );
+	const back = fromMarkup( markup ).elements[ 0 ];
+	assert.equal( back.x, 9.28 );
+	assert.equal( back.h, 57.83 );
+	assert.equal( back.layout.h.start, '200pt' );
+} );
+
 test( 'the attributes of a core block, one by one', () => {
 	const read = ( attrs, options ) => fromMarkup( `<!-- wp:events-certificates/certificate {"page":{"w":1,"h":1}} --><!-- wp:draw/text ${ JSON.stringify( attrs ) } /--><!-- /wp:events-certificates/certificate -->`, options ).elements[ 0 ];
 	assert.equal( read( { style: { typography: { fontSize: '13px' } } } ).size, 13, 'px is the point' );
